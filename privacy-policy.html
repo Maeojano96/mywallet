@@ -66,6 +66,60 @@
             .content { padding: 24px; }
             h1 { font-size: 22px; }
         }
+    
+        /* DOMINO-STYLE FOOTER */
+        .site-footer {
+            margin-top: 60px;
+            padding: 40px 20px 30px;
+            text-align: center;
+            border-top: 1px solid var(--border);
+        }
+        .footer-brand {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        .footer-brand-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--gradient-1);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: white;
+        }
+        .footer-brand-name {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--text);
+            letter-spacing: 0.5px;
+        }
+        .footer-links {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px 24px;
+            margin-bottom: 20px;
+        }
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        .footer-links a:hover {
+            color: var(--primary);
+        }
+        .footer-copyright {
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
     </style>
 </head>
 <body>
@@ -133,10 +187,24 @@
             <h2>9. Contact Us</h2>
             <p>For privacy-related questions, contact us at <a href="mailto:maroduhoki6@gmail.com">maroduhoki6@gmail.com</a></p>
 
-            <div class="footer">
-                &copy; 2026 MyWallet. All rights reserved.<br>
-                Your privacy is important to us.
+
+        <div class="site-footer">
+            <div class="footer-brand">
+                <div class="footer-brand-icon"><i class="fas fa-wallet"></i></div>
+                <div class="footer-brand-name">MyWallet</div>
             </div>
+            <div class="footer-links">
+                <a href="https://my-wallet-personal.netlify.app/">Home</a>
+                <a href="https://my-wallet-personal.netlify.app/privacy-policy">Privacy Policy</a>
+                <a href="https://my-wallet-personal.netlify.app/terms-of-service">Terms of Service</a>
+                <a href="https://my-wallet-personal.netlify.app/support">Support</a>
+                <a href="https://my-wallet-personal.netlify.app/contact">Contact</a>
+            </div>
+            <div class="footer-copyright">
+                &copy; 2026 MyWallet. All rights reserved.
+            </div>
+        </div>
+
         </div>
     </div>
 </body>
