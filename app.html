@@ -1330,7 +1330,14 @@
 
         // ==================== AUTH ====================
         function initAuth() {
+            // Show loading immediately to prevent login flash
+            showLoading(true);
+
+            // Load local data first (for offline mode)
+            loadLocalData();
+
             if (!auth) {
+                showLoading(false);
                 const demoUser = localStorage.getItem('myWalletDemoUser');
                 if (demoUser) {
                     currentUser = JSON.parse(demoUser);
@@ -1342,6 +1349,7 @@
             }
             onAuthStateChanged(auth, user => {
                 currentUser = user;
+                showLoading(false);
                 if (user) {
                     loadUserData(user.uid);
                     showMainApp();
@@ -1494,7 +1502,7 @@
                     localStorage.removeItem('myWalletDemoUser');
                     currentUser = null;
                     showAuthPage('login');
-                    showToast('Logged out');
+                        showToast('Logged out');
                 }
             }
         }
@@ -1583,6 +1591,9 @@
         }
 
         function saveUserData() {
+            // Always save to localStorage first
+            saveLocalData();
+            // Then sync to Firebase if logged in
             if (!db || !currentUser) return;
             const saveData = {
                 transactions: data.transactions,
@@ -1611,6 +1622,33 @@
                 other: { limit: 15000, spent: 0, icon: 'ellipsis', color: '#64748b' }
             }
         };
+
+        // Load data from localStorage on startup
+        function loadLocalData() {
+            const saved = localStorage.getItem('myWalletData');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    if (parsed.transactions) data.transactions = parsed.transactions;
+                    if (parsed.debts) data.debts = parsed.debts;
+                    if (parsed.budgets) data.budgets = parsed.budgets;
+                    if (parsed.salary !== undefined) data.salary = parsed.salary;
+                    if (parsed.currency) data.currency = parsed.currency;
+                } catch(e) { console.log('Error loading local data', e); }
+            }
+        }
+
+        // Save data to localStorage
+        function saveLocalData() {
+            const saveData = {
+                transactions: data.transactions,
+                debts: data.debts,
+                budgets: data.budgets,
+                salary: data.salary,
+                currency: data.currency
+            };
+            localStorage.setItem('myWalletData', JSON.stringify(saveData));
+        }
 
         let currentPage = 'home';
 
@@ -1931,6 +1969,7 @@
                     other: { limit: 15000, spent: 0, icon: 'ellipsis', color: '#64748b' }
                 }
             };
+            localStorage.removeItem('myWalletData');
             saveUserData();
             renderAll();
             closeModal('resetModal');
@@ -1959,6 +1998,7 @@
                     const imported = JSON.parse(e.target.result);
                     if (imported.budgets && imported.transactions !== undefined) {
                         data = imported;
+                        saveLocalData();
                         saveUserData();
                         renderAll();
                         showToast('Data imported!');
@@ -2067,6 +2107,8 @@ ${message}`
         window.handleImport = handleImport;
         window.showNotifications = showNotifications;
         window.openBudgetModal = openBudgetModal;
+        window.loadLocalData = loadLocalData;
+        window.saveLocalData = saveLocalData;
 initAuth();
     </script>
 </body>
