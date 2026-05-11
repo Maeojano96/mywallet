@@ -742,28 +742,28 @@
                 <h2>Legal & Support</h2>
             </div>
             <div class="settings-section">
-                <div class="settings-item" onclick="window.open('https://my-wallet-personal.netlify.app/terms-of-service', '_blank')">
+                <div class="settings-item" onclick="window.open('https://mywallet-personal.netlify.app/terms-of-service', '_blank')">
                     <div class="settings-left">
                         <div class="settings-icon legal"><i class="fas fa-file-contract"></i></div>
                         <div><div class="settings-label">Terms of Service</div><div class="settings-desc">Read our terms and conditions</div></div>
                     </div>
                     <i class="fas fa-external-link-alt" style="color:var(--text-muted);font-size:12px;"></i>
                 </div>
-                <div class="settings-item" onclick="window.open('https://my-wallet-personal.netlify.app/privacy-policy', '_blank')">
+                <div class="settings-item" onclick="window.open('https://mywallet-personal.netlify.app/privacy-policy', '_blank')">
                     <div class="settings-left">
                         <div class="settings-icon legal"><i class="fas fa-shield-alt"></i></div>
                         <div><div class="settings-label">Privacy Policy</div><div class="settings-desc">How we handle your data</div></div>
                     </div>
                     <i class="fas fa-external-link-alt" style="color:var(--text-muted);font-size:12px;"></i>
                 </div>
-                <div class="settings-item" onclick="window.open('https://my-wallet-personal.netlify.app/support', '_blank')">
+                <div class="settings-item" onclick="window.open('https://mywallet-personal.netlify.app/support', '_blank')">
                     <div class="settings-left">
                         <div class="settings-icon support"><i class="fas fa-life-ring"></i></div>
                         <div><div class="settings-label">Support & Help</div><div class="settings-desc">FAQs and how-to guides</div></div>
                     </div>
                     <i class="fas fa-external-link-alt" style="color:var(--text-muted);font-size:12px;"></i>
                 </div>
-                <div class="settings-item" onclick="window.open('https://my-wallet-personal.netlify.app/contact', '_blank')">
+                <div class="settings-item" onclick="window.open('https://mywallet-personal.netlify.app/contact', '_blank')">
                     <div class="settings-left">
                         <div class="settings-icon contact"><i class="fas fa-envelope"></i></div>
                         <div><div class="settings-label">Contact Us</div><div class="settings-desc">Get in touch with our team</div></div>
@@ -783,11 +783,11 @@
                     <div class="footer-brand-name">MyWallet</div>
                 </div>
                 <div class="footer-links">
-                    <a href="https://my-wallet-personal.netlify.app/">Home</a>
-                    <a href="https://my-wallet-personal.netlify.app/privacy-policy">Privacy Policy</a>
-                    <a href="https://my-wallet-personal.netlify.app/terms-of-service">Terms of Service</a>
-                    <a href="https://my-wallet-personal.netlify.app/support">Support</a>
-                    <a href="https://my-wallet-personal.netlify.app/contact">Contact</a>
+                    <a href="https://mywallet-personal.netlify.app/">Home</a>
+                    <a href="https://mywallet-personal.netlify.app/privacy-policy">Privacy Policy</a>
+                    <a href="https://mywallet-personal.netlify.app/terms-of-service">Terms of Service</a>
+                    <a href="https://mywallet-personal.netlify.app/support">Support</a>
+                    <a href="https://mywallet-personal.netlify.app/contact">Contact</a>
                 </div>
                 <div class="footer-copyright">
                     &copy; 2026 MyWallet. All rights reserved.
@@ -2038,7 +2038,36 @@ ${message}`
         document.getElementById('registerPassword')?.addEventListener('keypress', e => { if (e.key === 'Enter') signUpWithEmail(); });
 
         // ==================== START ====================
-        initAuth();
+        
+        // Expose functions to global scope for HTML onclick handlers
+        window.signInWithGoogle = signInWithGoogle;
+        window.signInWithEmail = signInWithEmail;
+        window.signUpWithEmail = signUpWithEmail;
+        window.logout = logout;
+        window.saveProfile = saveProfile;
+        window.changePassword = changePassword;
+        window.showAuthPage = showAuthPage;
+        window.showPage = showPage;
+        window.openModal = openModal;
+        window.closeModal = closeModal;
+        window.toggleTheme = toggleTheme;
+        window.toggleFaq = toggleFaq;
+        window.sendContact = sendContact;
+        window.exportData = exportData;
+        window.importData = importData;
+        window.confirmReset = confirmReset;
+        window.resetAllData = resetAllData;
+        window.addTransaction = addTransaction;
+        window.addSalary = addSalary;
+        window.addDebt = addDebt;
+        window.payDebt = payDebt;
+        window.deleteDebt = deleteDebt;
+        window.saveBudget = saveBudget;
+        window.saveCurrency = saveCurrency;
+        window.handleImport = handleImport;
+        window.showNotifications = showNotifications;
+        window.openBudgetModal = openBudgetModal;
+initAuth();
     </script>
 </body>
 </html>
