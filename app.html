@@ -353,9 +353,9 @@
         .chart-bar:hover .chart-bar-value { opacity: 1; }
 
         /* TOAST */
-        .toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--bg-card); border: 1px solid var(--border); padding: 14px 24px; border-radius: 14px; box-shadow: var(--shadow-lg); z-index: 300; display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; color: var(--text); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); max-width: 90%; }
+        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: var(--bg-card); border: 1px solid var(--border); padding: 12px 20px; border-radius: 12px; box-shadow: var(--shadow-lg); z-index: 300; display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; color: var(--text); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); max-width: 90%; pointer-events: none; }
         .toast.show { transform: translateX(-50%) translateY(0); }
-        .toast-icon { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+        .toast-icon { width: 24px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
         .toast-icon.success { background: rgba(16,185,129,0.15); color: var(--success); }
         .toast-icon.error { background: rgba(239,68,68,0.15); color: var(--danger); }
 
@@ -369,6 +369,60 @@
         @media (min-width: 768px) {
             .app { max-width: 480px; box-shadow: 0 0 60px rgba(0,0,0,0.3); }
         }
+    
+        /* DOMINO-STYLE FOOTER */
+        .site-footer {
+            margin-top: 60px;
+            padding: 40px 20px 30px;
+            text-align: center;
+            border-top: 1px solid var(--border);
+        }
+        .footer-brand {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        .footer-brand-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--gradient-1);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: white;
+        }
+        .footer-brand-name {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--text);
+            letter-spacing: 0.5px;
+        }
+        .footer-links {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px 24px;
+            margin-bottom: 20px;
+        }
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        .footer-links a:hover {
+            color: var(--primary);
+        }
+        .footer-copyright {
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
     </style>
 </head>
 <body>
@@ -688,33 +742,33 @@
                 <h2>Legal & Support</h2>
             </div>
             <div class="settings-section">
-                <div class="settings-item" onclick="showPage('terms')">
+                <div class="settings-item" onclick="window.open('https://my-wallet-personal.netlify.app/terms-of-service', '_blank')">
                     <div class="settings-left">
                         <div class="settings-icon legal"><i class="fas fa-file-contract"></i></div>
                         <div><div class="settings-label">Terms of Service</div><div class="settings-desc">Read our terms and conditions</div></div>
                     </div>
-                    <i class="fas fa-chevron-right" style="color:var(--text-muted);"></i>
+                    <i class="fas fa-external-link-alt" style="color:var(--text-muted);font-size:12px;"></i>
                 </div>
-                <div class="settings-item" onclick="showPage('privacy')">
+                <div class="settings-item" onclick="window.open('https://my-wallet-personal.netlify.app/privacy-policy', '_blank')">
                     <div class="settings-left">
                         <div class="settings-icon legal"><i class="fas fa-shield-alt"></i></div>
                         <div><div class="settings-label">Privacy Policy</div><div class="settings-desc">How we handle your data</div></div>
                     </div>
-                    <i class="fas fa-chevron-right" style="color:var(--text-muted);"></i>
+                    <i class="fas fa-external-link-alt" style="color:var(--text-muted);font-size:12px;"></i>
                 </div>
-                <div class="settings-item" onclick="showPage('support')">
+                <div class="settings-item" onclick="window.open('https://my-wallet-personal.netlify.app/support', '_blank')">
                     <div class="settings-left">
                         <div class="settings-icon support"><i class="fas fa-life-ring"></i></div>
                         <div><div class="settings-label">Support & Help</div><div class="settings-desc">FAQs and how-to guides</div></div>
                     </div>
-                    <i class="fas fa-chevron-right" style="color:var(--text-muted);"></i>
+                    <i class="fas fa-external-link-alt" style="color:var(--text-muted);font-size:12px;"></i>
                 </div>
-                <div class="settings-item" onclick="showPage('contact')">
+                <div class="settings-item" onclick="window.open('https://my-wallet-personal.netlify.app/contact', '_blank')">
                     <div class="settings-left">
                         <div class="settings-icon contact"><i class="fas fa-envelope"></i></div>
                         <div><div class="settings-label">Contact Us</div><div class="settings-desc">Get in touch with our team</div></div>
                     </div>
-                    <i class="fas fa-chevron-right" style="color:var(--text-muted);"></i>
+                    <i class="fas fa-external-link-alt" style="color:var(--text-muted);font-size:12px;"></i>
                 </div>
             </div>
 
@@ -722,6 +776,22 @@
             <div style="text-align:center;padding:20px;color:var(--text-muted);font-size:12px;">
                 MyWallet v1.0.0<br>
                 Made with <i class="fas fa-heart" style="color:var(--danger);"></i> for you
+            </div>
+            <div class="site-footer" style="margin-top:0;padding-top:20px;border-top:1px solid var(--border);">
+                <div class="footer-brand">
+                    <div class="footer-brand-icon"><i class="fas fa-wallet"></i></div>
+                    <div class="footer-brand-name">MyWallet</div>
+                </div>
+                <div class="footer-links">
+                    <a href="https://my-wallet-personal.netlify.app/">Home</a>
+                    <a href="https://my-wallet-personal.netlify.app/privacy-policy">Privacy Policy</a>
+                    <a href="https://my-wallet-personal.netlify.app/terms-of-service">Terms of Service</a>
+                    <a href="https://my-wallet-personal.netlify.app/support">Support</a>
+                    <a href="https://my-wallet-personal.netlify.app/contact">Contact</a>
+                </div>
+                <div class="footer-copyright">
+                    &copy; 2026 MyWallet. All rights reserved.
+                </div>
             </div>
         </div>
 
@@ -1237,12 +1307,13 @@
     <script>
         // ==================== FIREBASE CONFIG ====================
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_PROJECT_ID.appspot.com",
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-            appId: "YOUR_APP_ID"
+            apiKey: "AIzaSyCH6Gv6czN3Le-AUKCFp9_sS4KTLkc0xXg",
+            authDomain: "mywallet-53d84.firebaseapp.com",
+            projectId: "mywallet-53d84",
+            storageBucket: "mywallet-53d84.firebasestorage.app",
+            messagingSenderId: "909996782063",
+            appId: "1:909996782063:web:74519e9d81cae3a24bc61a",
+            measurementId: "G-PYZL3CFYWM"
         };
 
         let app, auth, db;
