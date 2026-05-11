@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terms of Service - MyWallet</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --bg: #0f0f23;
+            --bg-card: #1a1a2e;
+            --text: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border: rgba(255,255,255,0.08);
+            --gradient-1: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            min-height: 100vh;
+        }
+        .bg-mesh {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 0;
+            background: radial-gradient(circle at 20% 80%, rgba(99,102,241,0.1) 0%, transparent 50%);
+        }
+        .app { position: relative; z-index: 1; max-width: 800px; margin: 0 auto; padding: 40px 20px; }
+        .header {
+            display: flex; align-items: center; gap: 12px; margin-bottom: 40px;
+        }
+        .logo-icon {
+            width: 44px; height: 44px; background: var(--gradient-1); border-radius: 12px;
+            display: flex; align-items: center; justify-content: center; font-size: 20px; color: white;
+        }
+        .logo-text { font-size: 24px; font-weight: 800; background: var(--gradient-1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .content {
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: 24px;
+            padding: 40px;
+        }
+        h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+        .subtitle { color: var(--text-muted); font-size: 14px; margin-bottom: 32px; }
+        h2 { font-size: 20px; font-weight: 700; margin: 32px 0 16px; color: var(--text); }
+        p { color: var(--text-secondary); font-size: 15px; margin-bottom: 16px; }
+        ul { margin: 12px 0 20px 24px; }
+        li { color: var(--text-secondary); font-size: 15px; margin-bottom: 8px; }
+        strong { color: var(--text); }
+        a { color: var(--primary); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .footer {
+            margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--border);
+            color: var(--text-muted); font-size: 13px;
+        }
+        .back-btn {
+            display: inline-flex; align-items: center; gap: 8px;
+            color: var(--text-muted); font-size: 14px; margin-bottom: 20px;
+            cursor: pointer; transition: color 0.3s;
+        }
+        .back-btn:hover { color: var(--text); }
+        @media (max-width: 600px) {
+            .content { padding: 24px; }
+            h1 { font-size: 22px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-mesh"></div>
+    <div class="app">
+        <div class="header">
+            <div class="logo-icon"><i class="fas fa-wallet"></i></div>
+            <div class="logo-text">MyWallet</div>
+        </div>
+        <div class="back-btn" onclick="history.back()">
+            <i class="fas fa-arrow-left"></i> Back to App
+        </div>
+        <div class="content">
+            <h1>Terms of Service</h1>
+            <div class="subtitle">Last updated: May 12, 2026</div>
+
+            <h2>1. Acceptance of Terms</h2>
+            <p>By accessing or using <strong>MyWallet</strong>, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the application.</p>
+
+            <h2>2. Description of Service</h2>
+            <p>MyWallet is a personal finance management application that allows users to:</p>
+            <ul>
+                <li>Track income and expenses</li>
+                <li>Manage budgets and savings goals</li>
+                <li>Record and monitor debts</li>
+                <li>View financial analytics and reports</li>
+                <li>Export and import financial data</li>
+            </ul>
+
+            <h2>3. User Accounts</h2>
+            <p>To use certain features, you must create an account. You are responsible for:</p>
+            <ul>
+                <li>Maintaining the confidentiality of your account credentials</li>
+                <li>All activities that occur under your account</li>
+                <li>Notifying us immediately of any unauthorized use</li>
+            </ul>
+
+            <h2>4. Data Storage</h2>
+            <p>Your financial data is stored locally on your device and/or in Firebase Cloud (if you sign in). We do not sell or share your personal financial information with third parties.</p>
+
+            <h2>5. Acceptable Use</h2>
+            <p>You agree not to:</p>
+            <ul>
+                <li>Use the app for any illegal purposes</li>
+                <li>Attempt to hack, disrupt, or damage the service</li>
+                <li>Share false or misleading financial information</li>
+                <li>Reverse engineer or copy the application</li>
+            </ul>
+
+            <h2>6. Limitation of Liability</h2>
+            <p>MyWallet is provided "as is" without warranties. We are not responsible for any financial losses or decisions made based on the app's data. Always consult a professional financial advisor for important decisions.</p>
+
+            <h2>7. Changes to Terms</h2>
+            <p>We may update these terms from time to time. Continued use of the app after changes constitutes acceptance of the new terms.</p>
+
+            <h2>8. Contact</h2>
+            <p>For questions about these terms, contact us at <a href="mailto:maroduhoki6@gmail.com">maroduhoki6@gmail.com</a></p>
+
+            <div class="footer">
+                &copy; 2026 MyWallet. All rights reserved.<br>
+                MyWallet is a personal finance management application.
+            </div>
+        </div>
+    </div>
+</body>
+</html>

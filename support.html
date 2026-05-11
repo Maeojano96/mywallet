@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Support & Help - MyWallet</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --success: #10b981;
+            --bg: #0f0f23;
+            --bg-card: #1a1a2e;
+            --bg-hover: #252545;
+            --text: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border: rgba(255,255,255,0.08);
+            --gradient-1: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            min-height: 100vh;
+        }
+        .bg-mesh {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 0;
+            background: radial-gradient(circle at 20% 80%, rgba(99,102,241,0.1) 0%, transparent 50%);
+        }
+        .app { position: relative; z-index: 1; max-width: 800px; margin: 0 auto; padding: 40px 20px; }
+        .header {
+            display: flex; align-items: center; gap: 12px; margin-bottom: 40px;
+        }
+        .logo-icon {
+            width: 44px; height: 44px; background: var(--gradient-1); border-radius: 12px;
+            display: flex; align-items: center; justify-content: center; font-size: 20px; color: white;
+        }
+        .logo-text { font-size: 24px; font-weight: 800; background: var(--gradient-1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .back-btn {
+            display: inline-flex; align-items: center; gap: 8px;
+            color: var(--text-muted); font-size: 14px; margin-bottom: 20px;
+            cursor: pointer; transition: color 0.3s;
+        }
+        .back-btn:hover { color: var(--text); }
+        h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+        .subtitle { color: var(--text-muted); font-size: 14px; margin-bottom: 32px; }
+
+        .faq-item {
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px;
+            margin-bottom: 12px; overflow: hidden;
+        }
+        .faq-question {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 20px 24px; cursor: pointer; transition: background 0.3s;
+        }
+        .faq-question:hover { background: var(--bg-hover); }
+        .faq-question-text { font-size: 15px; font-weight: 600; color: var(--text); }
+        .faq-question i { color: var(--text-muted); transition: transform 0.3s; }
+        .faq-item.open .faq-question i { transform: rotate(180deg); }
+        .faq-answer {
+            padding: 0 24px 20px; font-size: 14px; color: var(--text-secondary); line-height: 1.7;
+            display: none;
+        }
+        .faq-item.open .faq-answer { display: block; }
+        .faq-answer strong { color: var(--text); }
+        .faq-answer a { color: var(--primary); text-decoration: none; }
+
+        .contact-box {
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px;
+            padding: 24px; margin-top: 32px;
+        }
+        .contact-box h3 { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
+        .contact-item {
+            display: flex; align-items: center; gap: 14px; margin-bottom: 16px;
+        }
+        .contact-item:last-child { margin-bottom: 0; }
+        .contact-icon {
+            width: 44px; height: 44px; border-radius: 14px; background: var(--gradient-1);
+            display: flex; align-items: center; justify-content: center; font-size: 18px; color: white;
+        }
+        .contact-label { font-size: 12px; color: var(--text-muted); }
+        .contact-value { font-size: 14px; font-weight: 600; color: var(--text); margin-top: 2px; }
+        .contact-value a { color: var(--primary); text-decoration: none; }
+
+        .footer {
+            margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--border);
+            color: var(--text-muted); font-size: 13px; text-align: center;
+        }
+        @media (max-width: 600px) {
+            h1 { font-size: 22px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-mesh"></div>
+    <div class="app">
+        <div class="header">
+            <div class="logo-icon"><i class="fas fa-wallet"></i></div>
+            <div class="logo-text">MyWallet</div>
+        </div>
+        <div class="back-btn" onclick="history.back()">
+            <i class="fas fa-arrow-left"></i> Back to App
+        </div>
+        <h1>Support & Help Center</h1>
+        <div class="subtitle">Find answers to common questions</div>
+
+        <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-question">
+                <span class="faq-question-text">How do I add a transaction?</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="faq-answer">
+                Tap the <strong>+ button</strong> (floating button) on the home screen, select "Transaction", enter the amount, choose type (income/expense), select a category, and tap "Add Transaction".
+            </div>
+        </div>
+
+        <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-question">
+                <span class="faq-question-text">How do I set a budget?</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="faq-answer">
+                On the home screen, find the "Weekly Budgets" section. Tap any budget category to edit its weekly limit. Enter your desired amount and tap "Set Budget".
+            </div>
+        </div>
+
+        <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-question">
+                <span class="faq-question-text">How do I add my salary?</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="faq-answer">
+                On the home screen, scroll to the "Salary Income" card and tap "Add Monthly Salary". Enter your monthly salary amount and tap "Save Salary".
+            </div>
+        </div>
+
+        <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-question">
+                <span class="faq-question-text">Can I use the app without signing in?</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="faq-answer">
+                Yes! You can use MyWallet in <strong>Demo Mode</strong> without creating an account. Your data will be saved locally on your device. Signing in allows you to sync data across devices.
+            </div>
+        </div>
+
+        <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-question">
+                <span class="faq-question-text">How do I export my data?</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="faq-answer">
+                Go to <strong>Settings</strong> and tap "Export Data". Your data will be downloaded as a JSON file. You can later import this file to restore your data.
+            </div>
+        </div>
+
+        <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-question">
+                <span class="faq-question-text">How do I change the currency?</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="faq-answer">
+                Go to <strong>Settings</strong>, tap "Currency", select your preferred currency (IQD, USD, EUR, GBP, or TRY), and tap "Save Currency".
+            </div>
+        </div>
+
+        <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-question">
+                <span class="faq-question-text">Is my financial data secure?</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="faq-answer">
+                Yes! When signed in, your data is encrypted and stored in Firebase Cloud. When using locally, data stays on your device only. We never sell or share your financial information.
+            </div>
+        </div>
+
+        <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-question">
+                <span class="faq-question-text">How do I delete my account?</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="faq-answer">
+                Go to <strong>Settings</strong> and tap "Reset All Data" to clear your financial data. To delete your account completely, please contact us at <a href="mailto:maroduhoki6@gmail.com">maroduhoki6@gmail.com</a>.
+            </div>
+        </div>
+
+        <div class="contact-box">
+            <h3><i class="fas fa-headset" style="color:var(--primary);margin-right:8px;"></i>Still need help?</h3>
+            <div class="contact-item">
+                <div class="contact-icon"><i class="fas fa-envelope"></i></div>
+                <div>
+                    <div class="contact-label">Email Support</div>
+                    <div class="contact-value"><a href="mailto:maroduhoki6@gmail.com">maroduhoki6@gmail.com</a></div>
+                </div>
+            </div>
+            <div class="contact-item">
+                <div class="contact-icon" style="background:var(--success);"><i class="fas fa-clock"></i></div>
+                <div>
+                    <div class="contact-label">Response Time</div>
+                    <div class="contact-value">Within 24-48 hours</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            &copy; 2026 MyWallet. All rights reserved.
+        </div>
+    </div>
+    <script>
+        function toggleFaq(item) { item.classList.toggle('open'); }
+    </script>
+</body>
+</html>
