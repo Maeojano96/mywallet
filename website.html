@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MyWallet - Personal Finance Management</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-light: #818cf8;
+            --primary-dark: #4f46e5;
+            --secondary: #06b6d4;
+            --accent: #f59e0b;
+            --success: #10b981;
+            --danger: #ef4444;
+            --bg: #0a0a1a;
+            --bg-card: #12122a;
+            --bg-card-2: #1a1a3e;
+            --bg-hover: #252545;
+            --text: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border: rgba(255,255,255,0.06);
+            --gradient-1: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            --gradient-2: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+            --gradient-3: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+            --gradient-4: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+            --shadow: 0 8px 32px rgba(0,0,0,0.4);
+            --shadow-lg: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* BACKGROUND */
+        .bg-mesh {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 0; overflow: hidden;
+        }
+        .bg-mesh::before {
+            content: '';
+            position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(99,102,241,0.12) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(6,182,212,0.08) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(139,92,246,0.06) 0%, transparent 60%);
+            animation: meshMove 20s ease-in-out infinite;
+        }
+        @keyframes meshMove {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            33% { transform: translate(30px, -30px) rotate(2deg); }
+            66% { transform: translate(-20px, 20px) rotate(-1deg); }
+        }
+
+        /* NAVBAR */
+        .navbar {
+            position: fixed; top: 0; left: 0; width: 100%; z-index: 100;
+            padding: 16px 24px; display: flex; justify-content: space-between; align-items: center;
+            backdrop-filter: blur(20px); background: rgba(10,10,26,0.7);
+            border-bottom: 1px solid var(--border);
+        }
+        .nav-brand {
+            display: flex; align-items: center; gap: 10px;
+        }
+        .nav-brand-icon {
+            width: 36px; height: 36px; background: var(--gradient-1); border-radius: 10px;
+            display: flex; align-items: center; justify-content: center; font-size: 16px; color: white;
+        }
+        .nav-brand-name { font-size: 18px; font-weight: 800; color: var(--text); }
+        .nav-links {
+            display: flex; gap: 24px; align-items: center;
+        }
+        .nav-links a {
+            color: var(--text-secondary); text-decoration: none; font-size: 14px; font-weight: 500;
+            transition: color 0.3s;
+        }
+        .nav-links a:hover { color: var(--text); }
+        .nav-cta {
+            padding: 10px 20px; background: var(--gradient-1); border: none; border-radius: 10px;
+            color: white; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none;
+            transition: all 0.3s;
+        }
+        .nav-cta:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(99,102,241,0.3); }
+        .nav-menu-btn {
+            display: none; background: none; border: none; color: var(--text); font-size: 20px; cursor: pointer;
+        }
+
+        /* HERO */
+        .hero {
+            position: relative; z-index: 1; min-height: 100vh;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; padding: 120px 20px 60px;
+        }
+        .hero-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 8px 16px; background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.3);
+            border-radius: 20px; font-size: 13px; color: var(--primary-light); font-weight: 600; margin-bottom: 24px;
+        }
+        .hero-badge i { font-size: 12px; }
+        .hero-title {
+            font-size: clamp(36px, 8vw, 64px); font-weight: 900; line-height: 1.1;
+            margin-bottom: 20px; max-width: 800px;
+        }
+        .hero-title span {
+            background: var(--gradient-1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .hero-subtitle {
+            font-size: clamp(16px, 3vw, 20px); color: var(--text-secondary); max-width: 560px;
+            margin-bottom: 40px; line-height: 1.7;
+        }
+        .hero-buttons {
+            display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;
+        }
+        .btn-primary-lg {
+            padding: 16px 32px; background: var(--gradient-1); border: none; border-radius: 14px;
+            color: white; font-size: 16px; font-weight: 600; cursor: pointer; text-decoration: none;
+            transition: all 0.3s; display: inline-flex; align-items: center; gap: 10px;
+        }
+        .btn-primary-lg:hover { transform: translateY(-3px); box-shadow: 0 12px 35px rgba(99,102,241,0.4); }
+        .btn-secondary-lg {
+            padding: 16px 32px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+            color: var(--text); font-size: 16px; font-weight: 600; cursor: pointer; text-decoration: none;
+            transition: all 0.3s; display: inline-flex; align-items: center; gap: 10px;
+        }
+        .btn-secondary-lg:hover { background: var(--bg-hover); transform: translateY(-3px); }
+
+        /* PHONE MOCKUP */
+        .phone-mockup {
+            margin-top: 60px; position: relative;
+            width: 280px; height: 560px; background: var(--bg-card);
+            border-radius: 40px; border: 8px solid var(--bg-card-2);
+            box-shadow: var(--shadow-lg), 0 0 100px rgba(99,102,241,0.2);
+            overflow: hidden;
+        }
+        .phone-notch {
+            position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+            width: 120px; height: 28px; background: var(--bg-card-2); border-radius: 0 0 16px 16px;
+        }
+        .phone-screen {
+            padding: 40px 16px 16px; height: 100%; overflow: hidden;
+        }
+        .phone-balance {
+            background: var(--gradient-1); border-radius: 20px; padding: 20px; margin-bottom: 16px;
+            text-align: left;
+        }
+        .phone-balance-label { font-size: 10px; color: rgba(255,255,255,0.7); text-transform: uppercase; letter-spacing: 1px; }
+        .phone-balance-amount { font-size: 24px; font-weight: 800; color: white; margin-top: 4px; }
+        .phone-stats {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px;
+        }
+        .phone-stat {
+            background: var(--bg-card-2); border-radius: 14px; padding: 12px; text-align: left;
+        }
+        .phone-stat-icon { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; margin-bottom: 6px; }
+        .phone-stat-label { font-size: 9px; color: var(--text-muted); }
+        .phone-stat-value { font-size: 14px; font-weight: 700; color: var(--text); }
+        .phone-menu {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+        }
+        .phone-menu-item {
+            background: var(--bg-card-2); border-radius: 14px; padding: 14px; text-align: center;
+        }
+        .phone-menu-icon { width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 14px; color: white; margin: 0 auto 6px; }
+        .phone-menu-label { font-size: 10px; font-weight: 600; color: var(--text); }
+
+        /* FEATURES */
+        .features {
+            position: relative; z-index: 1; padding: 80px 20px;
+        }
+        .section-header {
+            text-align: center; margin-bottom: 60px;
+        }
+        .section-tag {
+            display: inline-block; padding: 6px 14px; background: rgba(99,102,241,0.15); border-radius: 20px;
+            font-size: 12px; color: var(--primary-light); font-weight: 600; margin-bottom: 16px;
+        }
+        .section-title {
+            font-size: clamp(28px, 5vw, 42px); font-weight: 800; margin-bottom: 12px;
+        }
+        .section-subtitle {
+            font-size: 16px; color: var(--text-secondary); max-width: 500px; margin: 0 auto;
+        }
+        .features-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px; max-width: 1000px; margin: 0 auto;
+        }
+        .feature-card {
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: 24px;
+            padding: 32px; transition: all 0.3s;
+        }
+        .feature-card:hover { transform: translateY(-6px); box-shadow: var(--shadow); border-color: rgba(99,102,241,0.2); }
+        .feature-icon {
+            width: 56px; height: 56px; border-radius: 18px; display: flex; align-items: center; justify-content: center;
+            font-size: 24px; color: white; margin-bottom: 20px;
+        }
+        .feature-icon.purple { background: var(--gradient-1); }
+        .feature-icon.cyan { background: var(--gradient-2); }
+        .feature-icon.orange { background: var(--gradient-3); }
+        .feature-icon.green { background: var(--gradient-4); }
+        .feature-icon.red { background: linear-gradient(135deg, #ef4444 0%, #f97316 100%); }
+        .feature-icon.blue { background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%); }
+        .feature-title { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+        .feature-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
+
+        /* STATS BAR */
+        .stats-bar {
+            position: relative; z-index: 1; padding: 60px 20px;
+            background: linear-gradient(180deg, transparent 0%, rgba(99,102,241,0.05) 50%, transparent 100%);
+        }
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px;
+            max-width: 800px; margin: 0 auto; text-align: center;
+        }
+        .stat-number { font-size: 36px; font-weight: 800; background: var(--gradient-1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .stat-label { font-size: 14px; color: var(--text-secondary); margin-top: 4px; }
+
+        /* CTA SECTION */
+        .cta-section {
+            position: relative; z-index: 1; padding: 80px 20px;
+        }
+        .cta-card {
+            max-width: 600px; margin: 0 auto; background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 32px; padding: 48px 32px; text-align: center;
+            box-shadow: var(--shadow-lg);
+        }
+        .cta-card h2 { font-size: 32px; font-weight: 800; margin-bottom: 12px; }
+        .cta-card p { font-size: 16px; color: var(--text-secondary); margin-bottom: 32px; }
+        .cta-btn {
+            padding: 16px 40px; background: var(--gradient-1); border: none; border-radius: 14px;
+            color: white; font-size: 16px; font-weight: 600; cursor: pointer; text-decoration: none;
+            display: inline-flex; align-items: center; gap: 10px; transition: all 0.3s;
+        }
+        .cta-btn:hover { transform: translateY(-3px); box-shadow: 0 12px 35px rgba(99,102,241,0.4); }
+
+        /* FOOTER */
+        .site-footer {
+            position: relative; z-index: 1; padding: 60px 20px 40px;
+            border-top: 1px solid var(--border); text-align: center;
+        }
+        .footer-brand {
+            display: flex; align-items: center; justify-content: center; gap: 12px;
+            margin-bottom: 24px;
+        }
+        .footer-brand-icon {
+            width: 44px; height: 44px; background: var(--gradient-1); border-radius: 12px;
+            display: flex; align-items: center; justify-content: center; font-size: 20px; color: white;
+        }
+        .footer-brand-name { font-size: 22px; font-weight: 800; color: var(--text); }
+        .footer-links {
+            display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 28px;
+            margin-bottom: 24px;
+        }
+        .footer-links a {
+            color: var(--text-secondary); text-decoration: none; font-size: 14px; font-weight: 500;
+            transition: color 0.3s;
+        }
+        .footer-links a:hover { color: var(--primary-light); }
+        .footer-copyright {
+            color: var(--text-muted); font-size: 13px;
+        }
+
+        /* MOBILE MENU */
+        .mobile-menu {
+            position: fixed; top: 0; right: -100%; width: 280px; height: 100%;
+            background: var(--bg-card); z-index: 200; padding: 80px 24px 24px;
+            transition: right 0.3s ease; border-left: 1px solid var(--border);
+        }
+        .mobile-menu.open { right: 0; }
+        .mobile-menu-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); z-index: 199; display: none;
+        }
+        .mobile-menu-overlay.open { display: block; }
+        .mobile-menu a {
+            display: block; padding: 14px 0; color: var(--text); text-decoration: none;
+            font-size: 16px; font-weight: 500; border-bottom: 1px solid var(--border);
+        }
+        .mobile-menu a:hover { color: var(--primary-light); }
+
+        /* ANIMATIONS */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-in { animation: fadeInUp 0.6s ease forwards; opacity: 0; }
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+        .delay-4 { animation-delay: 0.4s; }
+
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .nav-menu-btn { display: block; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .hero { padding-top: 100px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-mesh"></div>
+
+    <!-- MOBILE MENU -->
+    <div class="mobile-menu-overlay" id="menuOverlay" onclick="toggleMenu()"></div>
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="https://my-wallet-personal.netlify.app/">Home</a>
+        <a href="https://my-wallet-personal.netlify.app/privacy-policy">Privacy Policy</a>
+        <a href="https://my-wallet-personal.netlify.app/terms-of-service">Terms of Service</a>
+        <a href="https://my-wallet-personal.netlify.app/support">Support</a>
+        <a href="https://my-wallet-personal.netlify.app/contact">Contact</a>
+    </div>
+
+    <!-- NAVBAR -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <div class="nav-brand-icon"><i class="fas fa-wallet"></i></div>
+            <div class="nav-brand-name">MyWallet</div>
+        </div>
+        <div class="nav-links">
+            <a href="https://my-wallet-personal.netlify.app/">Home</a>
+            <a href="https://my-wallet-personal.netlify.app/privacy-policy">Privacy</a>
+            <a href="https://my-wallet-personal.netlify.app/terms-of-service">Terms</a>
+            <a href="https://my-wallet-personal.netlify.app/support">Support</a>
+            <a href="https://my-wallet-personal.netlify.app/contact">Contact</a>
+        </div>
+        <button class="nav-menu-btn" onclick="toggleMenu()"><i class="fas fa-bars"></i></button>
+    </nav>
+
+    <!-- HERO -->
+    <section class="hero">
+        <div class="hero-badge animate-in">
+            <i class="fas fa-sparkles"></i> Now Available
+        </div>
+        <h1 class="hero-title animate-in delay-1">
+            Your Money,<br><span>Under Control</span>
+        </h1>
+        <p class="hero-subtitle animate-in delay-2">
+            Track expenses, manage budgets, monitor debts, and watch your savings grow — all in one beautiful app.
+        </p>
+        <div class="hero-buttons animate-in delay-3">
+            <a href="https://my-wallet-personal.netlify.app/index.html" class="btn-primary-lg">
+                <i class="fas fa-rocket"></i> Launch App
+            </a>
+            <a href="https://my-wallet-personal.netlify.app/support" class="btn-secondary-lg">
+                <i class="fas fa-circle-info"></i> Learn More
+            </a>
+        </div>
+
+        <!-- PHONE MOCKUP -->
+        <div class="phone-mockup animate-in delay-4">
+            <div class="phone-notch"></div>
+            <div class="phone-screen">
+                <div class="phone-balance">
+                    <div class="phone-balance-label">Total Balance</div>
+                    <div class="phone-balance-amount">2,450,000 IQD</div>
+                </div>
+                <div class="phone-stats">
+                    <div class="phone-stat">
+                        <div class="phone-stat-icon" style="background:rgba(16,185,129,0.2);color:#10b981;"><i class="fas fa-arrow-down"></i></div>
+                        <div class="phone-stat-label">Income</div>
+                        <div class="phone-stat-value">3.2M</div>
+                    </div>
+                    <div class="phone-stat">
+                        <div class="phone-stat-icon" style="background:rgba(239,68,68,0.2);color:#ef4444;"><i class="fas fa-arrow-up"></i></div>
+                        <div class="phone-stat-label">Expense</div>
+                        <div class="phone-stat-value">750K</div>
+                    </div>
+                </div>
+                <div class="phone-menu">
+                    <div class="phone-menu-item">
+                        <div class="phone-menu-icon" style="background:var(--gradient-1);"><i class="fas fa-receipt"></i></div>
+                        <div class="phone-menu-label">Transactions</div>
+                    </div>
+                    <div class="phone-menu-item">
+                        <div class="phone-menu-icon" style="background:var(--gradient-3);"><i class="fas fa-hand-holding-dollar"></i></div>
+                        <div class="phone-menu-label">Debts</div>
+                    </div>
+                    <div class="phone-menu-item">
+                        <div class="phone-menu-icon" style="background:var(--gradient-2);"><i class="fas fa-chart-pie"></i></div>
+                        <div class="phone-menu-label">Analytics</div>
+                    </div>
+                    <div class="phone-menu-item">
+                        <div class="phone-menu-icon" style="background:var(--gradient-4);"><i class="fas fa-cog"></i></div>
+                        <div class="phone-menu-label">Settings</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section class="features">
+        <div class="section-header">
+            <div class="section-tag">Features</div>
+            <h2 class="section-title">Everything You Need</h2>
+            <p class="section-subtitle">Powerful tools to manage your personal finances with ease and style.</p>
+        </div>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon purple"><i class="fas fa-receipt"></i></div>
+                <h3 class="feature-title">Track Transactions</h3>
+                <p class="feature-desc">Log income and expenses with categories. View full history and filter by date, type, or amount.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon cyan"><i class="fas fa-bullseye"></i></div>
+                <h3 class="feature-title">Weekly Budgets</h3>
+                <p class="feature-desc">Set spending limits for categories like food, transport, shopping. Visual progress bars keep you on track.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon orange"><i class="fas fa-hand-holding-dollar"></i></div>
+                <h3 class="feature-title">Debt Manager</h3>
+                <p class="feature-desc">Keep track of who you owe and who owes you. Mark debts as paid with one tap.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon green"><i class="fas fa-money-bill-wave"></i></div>
+                <h3 class="feature-title">Salary Tracking</h3>
+                <p class="feature-desc">Add your monthly salary and see how much you have available to distribute across budgets.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon red"><i class="fas fa-chart-pie"></i></div>
+                <h3 class="feature-title">Visual Analytics</h3>
+                <p class="feature-desc">Beautiful charts and breakdowns. See where your money goes with spending overviews and category analysis.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon blue"><i class="fas fa-cloud"></i></div>
+                <h3 class="feature-title">Cloud Sync</h3>
+                <p class="feature-desc">Sign in with Google or Email to sync your data across devices. Or use offline mode with local storage.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- STATS -->
+    <section class="stats-bar">
+        <div class="stats-grid">
+            <div>
+                <div class="stat-number">12+</div>
+                <div class="stat-label">Currencies</div>
+            </div>
+            <div>
+                <div class="stat-number">6</div>
+                <div class="stat-label">Budget Categories</div>
+            </div>
+            <div>
+                <div class="stat-number">100%</div>
+                <div class="stat-label">Free to Use</div>
+            </div>
+            <div>
+                <div class="stat-number">24/7</div>
+                <div class="stat-label">Support</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta-section">
+        <div class="cta-card">
+            <h2>Ready to Take Control?</h2>
+            <p>Join thousands of users managing their finances smarter with MyWallet.</p>
+            <a href="https://my-wallet-personal.netlify.app/index.html" class="cta-btn">
+                <i class="fas fa-rocket"></i> Get Started Now
+            </a>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="site-footer">
+        <div class="footer-brand">
+            <div class="footer-brand-icon"><i class="fas fa-wallet"></i></div>
+            <div class="footer-brand-name">MyWallet</div>
+        </div>
+        <div class="footer-links">
+            <a href="https://my-wallet-personal.netlify.app/">Home</a>
+            <a href="https://my-wallet-personal.netlify.app/privacy-policy">Privacy Policy</a>
+            <a href="https://my-wallet-personal.netlify.app/terms-of-service">Terms of Service</a>
+            <a href="https://my-wallet-personal.netlify.app/support">Support</a>
+            <a href="https://my-wallet-personal.netlify.app/contact">Contact</a>
+        </div>
+        <div class="footer-copyright">
+            &copy; 2026 MyWallet. All rights reserved.
+        </div>
+    </footer>
+
+    <script>
+        function toggleMenu() {
+            document.getElementById('mobileMenu').classList.toggle('open');
+            document.getElementById('menuOverlay').classList.toggle('open');
+        }
+    </script>
+</body>
+</html>
