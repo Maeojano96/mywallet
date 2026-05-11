@@ -1299,12 +1299,12 @@
 
     <input type="file" id="importFile" style="display:none" accept=".json" onchange="handleImport(event)">
 
-    <!-- FIREBASE SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <!-- FIREBASE SDK v10 Modular -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, onAuthStateChanged, signOut, EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    <script>
         // ==================== FIREBASE CONFIG ====================
         const firebaseConfig = {
             apiKey: "AIzaSyCH6Gv6czN3Le-AUKCFp9_sS4KTLkc0xXg",
@@ -1321,11 +1321,11 @@
         let userData = null;
 
         try {
-            app = firebase.initializeApp(firebaseConfig);
-            auth = firebase.auth();
-            db = firebase.firestore();
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
         } catch(e) {
-            console.log("Firebase not configured - using local mode");
+            console.log("Firebase init error:", e);
         }
 
         // ==================== AUTH ====================
@@ -1340,7 +1340,7 @@
                 }
                 return;
             }
-            auth.onAuthStateChanged(user => {
+            onAuthStateChanged(auth, user => {
                 currentUser = user;
                 if (user) {
                     loadUserData(user.uid);
@@ -1384,11 +1384,15 @@
                 }, 1000);
                 return;
             }
-            const provider = new firebase.auth.GoogleAuthProvider();
-            auth.signInWithPopup(provider)
+            const provider = new GoogleAuthProvider();
+            signInWithPopup(auth, provider)
                 .then(() => { showLoading(false); })
                 .catch(error => {
-                    showAuthError('login', error.message);
+                    let msg = error.message;
+                    if (error.code === 'auth/configuration-not-found') {
+                        msg = 'Firebase Auth not enabled. Please enable it in Firebase Console → Authentication → Sign-in method.';
+                    }
+                    showAuthError('login', msg);
                     showLoading(false);
                 });
         }
@@ -1418,13 +1422,16 @@
                 }, 1000);
                 return;
             }
-            auth.signInWithEmailAndPassword(email, password)
+            signInWithEmailAndPassword(auth, email, password)
                 .then(() => showLoading(false))
                 .catch(error => {
                     let msg = error.message;
                     if (error.code === 'auth/user-not-found') msg = 'Account not found. Please sign up.';
                     if (error.code === 'auth/wrong-password') msg = 'Incorrect password.';
                     if (error.code === 'auth/invalid-email') msg = 'Invalid email address.';
+                    if (error.code === 'auth/configuration-not-found') {
+                        msg = 'Firebase Auth not enabled. Please enable it in Firebase Console → Authentication → Sign-in method.';
+                    }
                     showAuthError('login', msg);
                     showLoading(false);
                 });
@@ -1460,12 +1467,15 @@
                 }, 1000);
                 return;
             }
-            auth.createUserWithEmailAndPassword(email, password)
-                .then(result => result.user.updateProfile({ displayName: name }))
+            createUserWithEmailAndPassword(auth, email, password)
+                .then(result => updateProfile(result.user, { displayName: name }))
                 .then(() => { showToast('Account created!'); showLoading(false); })
                 .catch(error => {
                     let msg = error.message;
                     if (error.code === 'auth/email-already-in-use') msg = 'Email already registered. Please sign in.';
+                    if (error.code === 'auth/configuration-not-found') {
+                        msg = 'Firebase Auth not enabled. Please enable it in Firebase Console → Authentication → Sign-in method.';
+                    }
                     showAuthError('register', msg);
                     showLoading(false);
                 });
@@ -1474,7 +1484,7 @@
         function logout() {
             if (confirm('Are you sure you want to logout?')) {
                 if (auth) {
-                    auth.signOut().then(() => {
+                    signOut(auth).then(() => {
                         currentUser = null;
                         userData = null;
                         showAuthPage('login');
@@ -1510,7 +1520,7 @@
             const name = document.getElementById('editName').value.trim();
             if (!name) { showToast('Please enter a name', 'error'); return; }
             if (auth && currentUser) {
-                currentUser.updateProfile({ displayName: name })
+                updateProfile(currentUser, { displayName: name })
                     .then(() => { updateProfileUI(); closeModal('editProfileModal'); showToast('Profile updated!'); })
                     .catch(err => showToast(err.message, 'error'));
             } else {
@@ -1537,9 +1547,9 @@
                 document.getElementById('confirmPassword').value = '';
                 return;
             }
-            const credential = firebase.auth.EmailAuthProvider.credential(currentUser.email, current);
-            currentUser.reauthenticateWithCredential(credential)
-                .then(() => currentUser.updatePassword(newPass))
+            const credential = EmailAuthProvider.credential(currentUser.email, current);
+            reauthenticateWithCredential(currentUser, credential)
+                .then(() => updatePassword(currentUser, newPass))
                 .then(() => {
                     showToast('Password updated!');
                     closeModal('changePasswordModal');
@@ -1557,10 +1567,10 @@
         // ==================== USER DATA ====================
         function loadUserData(uid) {
             if (!db) return;
-            db.collection('users').doc(uid).get()
-                .then(doc => {
-                    if (doc.exists) {
-                        userData = doc.data();
+            getDoc(doc(db, 'users', uid))
+                .then(docSnap => {
+                    if (docSnap.exists()) {
+                        userData = docSnap.data();
                         if (userData.transactions) data.transactions = userData.transactions;
                         if (userData.debts) data.debts = userData.debts;
                         if (userData.budgets) data.budgets = userData.budgets;
@@ -1580,9 +1590,9 @@
                 budgets: data.budgets,
                 salary: data.salary,
                 currency: data.currency,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                updatedAt: serverTimestamp()
             };
-            db.collection('users').doc(currentUser.uid).set(saveData, { merge: true })
+            setDoc(doc(db, 'users', currentUser.uid), saveData, { merge: true })
                 .catch(err => console.log('Error saving:', err));
         }
 
