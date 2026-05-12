@@ -441,9 +441,9 @@
     </div>
 
     <!-- AUTH PAGES -->
-    <div id="authPages">
+    <div id="authPages" style="display:flex;">
         <!-- LOGIN -->
-        <div class="auth-page" id="loginPage">
+        <div class="auth-page" id="loginPage" style="display:flex;">
             <div class="auth-logo">
                 <div class="auth-logo-icon"><i class="fas fa-wallet"></i></div>
                 <div class="auth-logo-text">MyWallet</div>
@@ -1343,36 +1343,31 @@
 
         // ==================== AUTH ====================
         function initAuth() {
-            // Show loading first
-            showLoading(true);
-
-            // Load local data first (for offline mode)
+            // Load local data first
             loadLocalData();
 
-            // Check for demo mode user first (fastest check)
+            // Check for demo mode user
             const demoUser = localStorage.getItem('myWalletDemoUser');
             if (demoUser) {
                 currentUser = JSON.parse(demoUser);
                 showMainApp();
-                showLoading(false);
                 return;
             }
 
-            // If Firebase auth is not available, go to login immediately
+            // If no Firebase, stay on login (already visible by default)
             if (!auth) {
-                showLoading(false);
-                showAuthPage('login');
                 return;
             }
 
-            // Set a timeout in case Firebase auth hangs
-            let authTimeout = setTimeout(() => {
-                console.log('Auth timeout - showing login');
-                showLoading(false);
-                showAuthPage('login');
-            }, 5000);
+            // Show loading while checking Firebase auth
+            showLoading(true);
 
-            // Firebase auth state check
+            // Set timeout in case Firebase hangs
+            let authTimeout = setTimeout(() => {
+                showLoading(false);
+            }, 3000);
+
+            // Firebase auth check
             onAuthStateChanged(auth, user => {
                 clearTimeout(authTimeout);
                 currentUser = user;
@@ -1380,23 +1375,22 @@
                 if (user) {
                     loadUserData(user.uid);
                     showMainApp();
-                } else {
-                    showAuthPage('login');
                 }
+                // If no user, login page is already visible by default
             });
         }
 
         function showAuthPage(page) {
+            document.getElementById('authPages').style.display = 'flex';
             document.getElementById('loginPage').style.display = page === 'login' ? 'flex' : 'none';
             document.getElementById('registerPage').style.display = page === 'register' ? 'flex' : 'none';
-            document.getElementById('authPages').style.display = 'flex';
             document.getElementById('mainApp').style.display = 'none';
-            // Reset loading state
             showLoading(false);
         }
 
         function showMainApp() {
             document.getElementById('authPages').style.display = 'none';
+            document.getElementById('loginPage').style.display = 'none';
             document.getElementById('mainApp').style.display = 'block';
             updateProfileUI();
             init();
@@ -2267,3 +2261,6 @@ initAuth();
     </script>
 </body>
 </html>
+      .budget-amount { text-align: right; }
+        .budget-spent { font-size: 16px; font-weight: 700; color: var(--text); }
+        .budget-remaining { fon
