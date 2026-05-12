@@ -3867,50 +3867,7 @@
         }
 
         // ==================== NAVIGATION ====================
-        function showPage(page) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-
-            const pageMap = {
-                'home': 'pageHome',
-                'transactions': 'pageTransactions',
-                'debts': 'pageDebts',
-                'analytics': 'pageAnalytics',
-                'profile': 'pageProfile',
-                'settings': 'pageSettings',
-                'terms': 'pageTerms',
-                'privacy': 'pagePrivacy',
-                'support': 'pageSupport',
-                'contact': 'pageContact'
-            };
-
-            const navMap = {
-                'home': 0, 'transactions': 1, 'analytics': 2, 'profile': 3
-            };
-
-            if (pageMap[page]) {
-                document.getElementById(pageMap[page]).classList.add('active');
-            }
-
-            if (navMap[page] !== undefined) {
-                document.querySelectorAll('.nav-item')[navMap[page]].classList.add('active');
-            }
-
-            if (page === 'budgets') {
-                document.getElementById('pageHome').classList.add('active');
-                document.getElementById('budgetList').scrollIntoView({ behavior: 'smooth' });
-            }
-
-            // Render page-specific content when navigating
-            if (page === 'transactions') renderTransactions();
-            if (page === 'debts') renderDebts();
-            if (page === 'analytics') renderAnalytics();
-
-            currentPage = page;
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        // ==================== RENDER ====================
+        
         function renderAll() {
             const totalIncome = data.transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
             const totalExpense = data.transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
@@ -4348,7 +4305,7 @@ ${message}`
         window.saveProfile = saveProfile;
         window.changePassword = changePassword;
         window.showAuthPage = showAuthPage;
-        // window.showPage = showPage; // REMOVED - standalone script handles this
+        // // window.showPage = showPage; // REMOVED - standalone script handles this
         window.openModal = openModal;
         window.closeModal = closeModal;
         window.toggleTheme = toggleTheme;
