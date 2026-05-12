@@ -362,8 +362,8 @@
         /* LOADING */
         .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 500; display: none; align-items: center; justify-content: center; flex-direction: column; gap: 20px; }
         .loading-overlay.active { display: flex !important; }
-        #authPages { display: none; }
-        #authPages.active { display: flex; }
+        #authPages { display: flex; }
+        #authPages.hidden { display: none; }
         .loading-spinner { width: 48px; height: 48px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .loading-text { font-size: 14px; color: var(--text-muted); }
@@ -1226,6 +1226,11 @@
             try { walletData = JSON.parse(saved); } catch(e) {}
         }
     }
+
+    function saveLocalData() {
+        localStorage.setItem('myWalletData', JSON.stringify(walletData));
+    }
+
     loadWalletData();
 
     // Format numbers
@@ -1257,17 +1262,22 @@
     // ===== AUTH FUNCTIONS =====
 
     window.signInWithGoogle = function() {
-        // Create demo user for Google sign-in
-        var demoUser = {
-            uid: 'google-' + Date.now(),
-            email: 'user@gmail.com',
-            displayName: 'Google User',
-            photoURL: null,
-            provider: 'google'
-        };
-        localStorage.setItem('myWalletDemoUser', JSON.stringify(demoUser));
-        showMainAppScreen();
-        showToastMsg('Signed in with Google!');
+        try {
+            console.log('signInWithGoogle called');
+            var demoUser = {
+                uid: 'google-' + Date.now(),
+                email: 'user@gmail.com',
+                displayName: 'Google User',
+                photoURL: null,
+                provider: 'google'
+            };
+            localStorage.setItem('myWalletDemoUser', JSON.stringify(demoUser));
+            showMainAppScreen();
+            showToastMsg('Signed in with Google!');
+        } catch(e) {
+            console.error('signInWithGoogle error:', e);
+            alert('Error: ' + e.message);
+        }
     };
 
     window.signInWithEmail = function() {
@@ -1314,10 +1324,16 @@
     };
 
     window.showAuthPage = function(page) {
-        document.getElementById('authPages').style.display = 'flex';
-        document.getElementById('loginPage').style.display = page === 'login' ? 'flex' : 'none';
-        document.getElementById('registerPage').style.display = page === 'register' ? 'flex' : 'none';
-        document.getElementById('mainApp').style.display = 'none';
+        try {
+            console.log('showAuthPage called with:', page);
+            document.getElementById('authPages').classList.remove('hidden');
+            document.getElementById('loginPage').style.display = page === 'login' ? 'flex' : 'none';
+            document.getElementById('registerPage').style.display = page === 'register' ? 'flex' : 'none';
+            document.getElementById('mainApp').style.display = 'none';
+            document.body.style.overflow = '';
+        } catch(e) {
+            console.error('showAuthPage error:', e);
+        }
     };
 
     window.logout = function() {
@@ -1373,10 +1389,55 @@
     // ===== MAIN APP SHOW =====
 
     function showMainAppScreen() {
-        document.getElementById('authPages').style.display = 'none';
-        document.getElementById('loginPage').style.display = 'none';
-        document.getElementById('registerPage').style.display = 'none';
-        document.getElementById('mainApp').style.display = 'block';
+        try {
+            console.log('showMainAppScreen called');
+            document.getElementById('authPages').classList.add('hidden');
+            document.getElementById('loginPage').style.display = 'none';
+            document.getElementById('registerPage').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'block';
+            document.body.style.overflow = '';
+
+            // Update profile
+            var demoUserStr = localStorage.getItem('myWalletDemoUser');
+            if(demoUserStr) {
+                var user = JSON.parse(demoUserStr);
+                var nameEl = document.getElementById('profileName');
+                var emailEl = document.getElementById('profileEmail');
+                var avatarEl = document.getElementById('profileAvatar');
+                if(nameEl) nameEl.textContent = user.displayName || 'User';
+                if(emailEl) emailEl.textContent = user.email || 'user@email.com';
+                if(avatarEl) avatarEl.innerHTML = '<span style="font-size:32px;font-weight:700;">' + (user.displayName || 'U').charAt(0).toUpperCase() + '</span>';
+            }
+
+            // Update balance
+            var totalIncome = walletData.transactions.filter(function(t) { return t.type === 'income'; }).reduce(function(s, t) { return s + t.amount; }, 0);
+            var totalExpense = walletData.transactions.filter(function(t) { return t.type === 'expense'; }).reduce(function(s, t) { return s + t.amount; }, 0);
+            var balance = totalIncome - totalExpense + walletData.salary;
+
+            var balEl = document.getElementById('totalBalance');
+            if(balEl) balEl.textContent = fmtNum(balance);
+            var incEl = document.getElementById('totalIncome');
+            if(incEl) incEl.textContent = fmtNum(totalIncome + walletData.salary);
+            var expEl = document.getElementById('totalExpense');
+            if(expEl) expEl.textContent = fmtNum(totalExpense);
+            var savEl = document.getElementById('totalSavings');
+            if(savEl) savEl.textContent = fmtNum(Math.max(0, balance - totalExpense));
+            var debtEl = document.getElementById('totalDebts');
+            if(debtEl) debtEl.textContent = fmtNum(walletData.debts.filter(function(d) { return d.type === 'owe'; }).reduce(function(s, d) { return s + d.amount; }, 0));
+            var salEl = document.getElementById('salaryAmount');
+            if(salEl) salEl.textContent = fmtNum(walletData.salary) + ' ' + walletData.currency;
+
+            // Date
+            var now = new Date();
+            var dateEl = document.getElementById('dateDisplay');
+            if(dateEl) dateEl.textContent = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
+            renderAll();
+        } catch(e) {
+            console.error('showMainAppScreen error:', e);
+            alert('Error loading app: ' + e.message);
+        }
+    }
 
         // Update profile
         var demoUserStr = localStorage.getItem('myWalletDemoUser');
@@ -1455,6 +1516,7 @@
 
     // ===== ON LOAD - Check if user is logged in =====
     document.addEventListener('DOMContentLoaded', function() {
+        loadWalletData();
         loadNotifications();
 
         // Apply saved language
@@ -1472,7 +1534,7 @@
             showMainAppScreen();
         } else {
             // Ensure auth is visible
-            document.getElementById('authPages').style.display = 'flex';
+            document.getElementById('authPages').classList.remove('hidden');
             document.getElementById('loginPage').style.display = 'flex';
             document.getElementById('mainApp').style.display = 'none';
         }
@@ -2040,12 +2102,303 @@
         document.getElementById('contactEmail').value = '';
         document.getElementById('contactMessage').value = '';
     };
+
+    // ===== EVENT LISTENERS FOR IFRAME COMPATIBILITY =====
+    // Inline onclick is blocked in some sandboxed iframes
+    // This adds event listeners programmatically
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Auth buttons
+        var googleBtn = document.querySelector('#loginPage .google-btn');
+        if(googleBtn) googleBtn.addEventListener('click', function(e) { e.preventDefault(); signInWithGoogle(); });
+
+        var googleBtnReg = document.querySelector('#registerPage .google-btn');
+        if(googleBtnReg) googleBtnReg.addEventListener('click', function(e) { e.preventDefault(); signInWithGoogle(); });
+
+        var loginBtn = document.getElementById('loginBtn');
+        if(loginBtn) loginBtn.addEventListener('click', function(e) { e.preventDefault(); signInWithEmail(); });
+
+        var registerBtn = document.getElementById('registerBtn');
+        if(registerBtn) registerBtn.addEventListener('click', function(e) { e.preventDefault(); signUpWithEmail(); });
+
+        // Sign Up / Sign In links
+        var signUpLink = document.querySelector('#loginPage .auth-switch a');
+        if(signUpLink) signUpLink.addEventListener('click', function(e) { e.preventDefault(); showAuthPage('register'); });
+
+        var signInLink = document.querySelector('#registerPage .auth-switch a');
+        if(signInLink) signInLink.addEventListener('click', function(e) { e.preventDefault(); showAuthPage('login'); });
+
+        // Header buttons
+        var notifBtn = document.getElementById('headerNotifBtn');
+        if(notifBtn) notifBtn.addEventListener('click', function(e) { e.preventDefault(); showPage('notifications'); });
+
+        var profileBtn = document.querySelector('.header-actions .header-btn:last-child');
+        if(profileBtn) profileBtn.addEventListener('click', function(e) { e.preventDefault(); showPage('profile'); });
+
+        // Menu items
+        var menuItems = document.querySelectorAll('.menu-item');
+        var menuPages = ['transactions', 'debts', 'analytics', 'settings'];
+        menuItems.forEach(function(item, i) {
+            if(menuPages[i]) {
+                item.addEventListener('click', function(e) { 
+                    e.preventDefault(); 
+                    showPage(menuPages[i]); 
+                });
+            }
+        });
+
+        // FAB
+        var fab = document.querySelector('.fab');
+        if(fab) fab.addEventListener('click', function(e) { e.preventDefault(); openModal('quickAddModal'); });
+
+        // Bottom nav
+        var navItems = document.querySelectorAll('.bottom-nav .nav-item');
+        var navPages = ['home', 'transactions', 'analytics', 'profile'];
+        navItems.forEach(function(item, i) {
+            if(navPages[i]) {
+                item.addEventListener('click', function(e) { 
+                    e.preventDefault(); 
+                    showPage(navPages[i]); 
+                });
+            }
+        });
+
+        // Salary card button
+        var salaryBtn = document.querySelector('.salary-btn');
+        if(salaryBtn) salaryBtn.addEventListener('click', function(e) { e.preventDefault(); openModal('salaryModal'); });
+
+        // See All links
+        var seeAllBudgets = document.querySelector('#pageHome .section-title .see-all');
+        if(seeAllBudgets) seeAllBudgets.addEventListener('click', function(e) { e.preventDefault(); showPage('budgets'); });
+
+        var seeAllTrans = document.querySelector('#pageTransactions .section-title .see-all');
+        if(seeAllTrans) seeAllTrans.addEventListener('click', function(e) { e.preventDefault(); openModal('transactionModal'); });
+
+        var seeAllDebts = document.querySelector('#pageDebts .section-title .see-all');
+        if(seeAllDebts) seeAllDebts.addEventListener('click', function(e) { e.preventDefault(); openModal('debtModal'); });
+
+        // Back arrows
+        var backArrows = document.querySelectorAll('.section-title h2 i.fas.fa-arrow-left');
+        backArrows.forEach(function(arrow) {
+            arrow.addEventListener('click', function(e) { 
+                e.preventDefault(); 
+                var target = arrow.getAttribute('onclick');
+                if(target && target.includes("showPage('")) {
+                    var page = target.match(/showPage\('([^']+)'\)/);
+                    if(page) showPage(page[1]);
+                } else if(target && target.includes('goBackFromNotifications')) {
+                    goBackFromNotifications();
+                }
+            });
+        });
+
+        // Modal close buttons
+        var modalCloses = document.querySelectorAll('.modal-close');
+        modalCloses.forEach(function(btn) {
+            btn.addEventListener('click', function(e) { 
+                e.preventDefault(); 
+                var modal = btn.closest('.modal-overlay');
+                if(modal) closeModal(modal.id);
+            });
+        });
+
+        // Modal overlay clicks (close on background click)
+        var overlays = document.querySelectorAll('.modal-overlay');
+        overlays.forEach(function(overlay) {
+            overlay.addEventListener('click', function(e) {
+                if(e.target === overlay) {
+                    closeModal(overlay.id);
+                }
+            });
+        });
+
+        // Settings items
+        var themeToggle = document.getElementById('themeToggle');
+        if(themeToggle) themeToggle.addEventListener('click', function(e) { e.preventDefault(); toggleTheme(); });
+
+        var currencyItem = document.querySelector('.settings-item[onclick*="currencyModal"]');
+        if(currencyItem) currencyItem.addEventListener('click', function(e) { e.preventDefault(); openModal('currencyModal'); });
+
+        var exportItem = document.querySelector('.settings-item[onclick*="exportData"]');
+        if(exportItem) exportItem.addEventListener('click', function(e) { e.preventDefault(); exportData(); });
+
+        var importItem = document.querySelector('.settings-item[onclick*="importData"]');
+        if(importItem) importItem.addEventListener('click', function(e) { e.preventDefault(); importData(); });
+
+        var resetItem = document.querySelector('.settings-item[onclick*="confirmReset"]');
+        if(resetItem) resetItem.addEventListener('click', function(e) { e.preventDefault(); confirmReset(); });
+
+        var langItem = document.querySelector('.settings-item[onclick*="languageModal"]');
+        if(langItem) langItem.addEventListener('click', function(e) { e.preventDefault(); openModal('languageModal'); });
+
+        // Legal links
+        var legalLinks = document.querySelectorAll('.settings-item[onclick*="window.open"]');
+        legalLinks.forEach(function(link) {
+            link.addEventListener('click', function(e) { 
+                e.preventDefault(); 
+                var onclick = link.getAttribute('onclick');
+                if(onclick) {
+                    var urlMatch = onclick.match(/window\.open\('([^']+)'/);
+                    if(urlMatch) window.open(urlMatch[1], '_blank');
+                }
+            });
+        });
+
+        // Profile page items
+        var editProfile = document.querySelector('#pageProfile .settings-item[onclick*="editProfileModal"]');
+        if(editProfile) editProfile.addEventListener('click', function(e) { e.preventDefault(); openModal('editProfileModal'); });
+
+        var changePass = document.querySelector('#pageProfile .settings-item[onclick*="changePasswordModal"]');
+        if(changePass) changePass.addEventListener('click', function(e) { e.preventDefault(); openModal('changePasswordModal'); });
+
+        var appSettings = document.querySelector('#pageProfile .settings-item[onclick*="settings"]');
+        if(appSettings) appSettings.addEventListener('click', function(e) { e.preventDefault(); showPage('settings'); });
+
+        var logoutBtn = document.querySelector('#pageProfile .settings-item[onclick*="logout"]');
+        if(logoutBtn) logoutBtn.addEventListener('click', function(e) { e.preventDefault(); logout(); });
+
+        // FAQ items
+        var faqItems = document.querySelectorAll('.faq-item');
+        faqItems.forEach(function(item) {
+            item.addEventListener('click', function(e) { 
+                e.preventDefault(); 
+                toggleFaq(item); 
+            });
+        });
+
+        // Modal action buttons
+        var saveBudgetBtn = document.querySelector('#budgetModal .btn-primary');
+        if(saveBudgetBtn) saveBudgetBtn.addEventListener('click', function(e) { e.preventDefault(); saveBudget(); });
+
+        var saveCurrencyBtn = document.querySelector('#currencyModal .btn-primary');
+        if(saveCurrencyBtn) saveCurrencyBtn.addEventListener('click', function(e) { e.preventDefault(); saveCurrency(); });
+
+        var addTransBtn = document.querySelector('#transactionModal .btn-primary');
+        if(addTransBtn) addTransBtn.addEventListener('click', function(e) { e.preventDefault(); addTransaction(); });
+
+        var addSalaryBtn = document.querySelector('#salaryModal .btn-primary');
+        if(addSalaryBtn) addSalaryBtn.addEventListener('click', function(e) { e.preventDefault(); addSalary(); });
+
+        var addDebtBtn = document.querySelector('#debtModal .btn-primary');
+        if(addDebtBtn) addDebtBtn.addEventListener('click', function(e) { e.preventDefault(); addDebt(); });
+
+        var saveProfileBtn = document.querySelector('#editProfileModal .btn-primary');
+        if(saveProfileBtn) saveProfileBtn.addEventListener('click', function(e) { e.preventDefault(); saveProfile(); });
+
+        var changePassBtn = document.querySelector('#changePasswordModal .btn-primary');
+        if(changePassBtn) changePassBtn.addEventListener('click', function(e) { e.preventDefault(); changePassword(); });
+
+        var resetBtn = document.querySelector('#resetModal .btn-danger');
+        if(resetBtn) resetBtn.addEventListener('click', function(e) { e.preventDefault(); resetAllData(); });
+
+        var cancelReset = document.querySelector('#resetModal .btn-primary:last-child');
+        if(cancelReset) cancelReset.addEventListener('click', function(e) { e.preventDefault(); closeModal('resetModal'); });
+
+        // Quick add modal buttons
+        var quickTrans = document.querySelector('#quickAddModal .btn-primary:nth-child(1)');
+        if(quickTrans) quickTrans.addEventListener('click', function(e) { e.preventDefault(); closeModal('quickAddModal'); openModal('transactionModal'); });
+
+        var quickDebt = document.querySelector('#quickAddModal .btn-primary:nth-child(2)');
+        if(quickDebt) quickDebt.addEventListener('click', function(e) { e.preventDefault(); closeModal('quickAddModal'); openModal('debtModal'); });
+
+        var quickSalary = document.querySelector('#quickAddModal .btn-primary:nth-child(3)');
+        if(quickSalary) quickSalary.addEventListener('click', function(e) { e.preventDefault(); closeModal('quickAddModal'); openModal('salaryModal'); });
+
+        var quickBudget = document.querySelector('#quickAddModal .btn-primary:nth-child(4)');
+        if(quickBudget) quickBudget.addEventListener('click', function(e) { e.preventDefault(); closeModal('quickAddModal'); openBudgetModal(); });
+
+        // Language buttons
+        var langBtns = document.querySelectorAll('#languageModal .btn-primary');
+        var langs = ['en', 'ar', 'ckb', 'ku_badini'];
+        langBtns.forEach(function(btn, i) {
+            if(langs[i]) {
+                btn.addEventListener('click', function(e) { e.preventDefault(); changeLanguage(langs[i]); });
+            }
+        });
+
+        // Contact form
+        var sendContactBtn = document.querySelector('#pageContact .btn-primary');
+        if(sendContactBtn) sendContactBtn.addEventListener('click', function(e) { e.preventDefault(); sendContact(); });
+
+        // Budget items (delegation)
+        var budgetList = document.getElementById('budgetList');
+        if(budgetList) {
+            budgetList.addEventListener('click', function(e) {
+                var item = e.target.closest('.budget-item');
+                if(item) {
+                    // Find which budget this is
+                    var icon = item.querySelector('.budget-icon');
+                    if(icon) {
+                        var classes = icon.className.split(' ');
+                        var budgetKey = classes.find(function(c) { return ['food','transport','shopping','entertainment','health','other'].includes(c); });
+                        if(budgetKey) openBudgetModal(budgetKey);
+                    }
+                }
+            });
+        }
+
+        // All budgets page
+        var allBudgetsList = document.getElementById('allBudgetsList');
+        if(allBudgetsList) {
+            allBudgetsList.addEventListener('click', function(e) {
+                var item = e.target.closest('.budget-item');
+                if(item) {
+                    var icon = item.querySelector('.budget-icon');
+                    if(icon) {
+                        var classes = icon.className.split(' ');
+                        var budgetKey = classes.find(function(c) { return ['food','transport','shopping','entertainment','health','other'].includes(c); });
+                        if(budgetKey) openBudgetModal(budgetKey);
+                    }
+                }
+            });
+        }
+
+        // Notifications
+        var notifList = document.getElementById('notificationsList');
+        if(notifList) {
+            notifList.addEventListener('click', function(e) {
+                var deleteBtn = e.target.closest('.notification-delete');
+                if(deleteBtn) {
+                    e.stopPropagation();
+                    var item = deleteBtn.closest('.notification-item');
+                    var index = Array.from(notifList.querySelectorAll('.notification-item')).indexOf(item);
+                    deleteNotification(index);
+                } else {
+                    var item = e.target.closest('.notification-item');
+                    if(item) {
+                        var index = Array.from(notifList.querySelectorAll('.notification-item')).indexOf(item);
+                        markNotificationRead(index);
+                    }
+                }
+            });
+        }
+
+        // Clear all notifications
+        var clearAllBtn = document.querySelector('#pageNotifications .section-title .see-all');
+        if(clearAllBtn) clearAllBtn.addEventListener('click', function(e) { e.preventDefault(); clearAllNotifications(); });
+
+        // Add new budget button
+        var addBudgetBtn = document.querySelector('#pageBudgets .section-title .see-all');
+        if(addBudgetBtn) addBudgetBtn.addEventListener('click', function(e) { e.preventDefault(); openBudgetModal(); });
+
+        // Budget category change
+        var budgetSelect = document.getElementById('budgetCategorySelect');
+        if(budgetSelect) budgetSelect.addEventListener('change', onBudgetCategoryChange);
+
+        // Enter key handlers
+        document.getElementById('loginPassword')?.addEventListener('keypress', function(e) { 
+            if(e.key === 'Enter') { e.preventDefault(); signInWithEmail(); } 
+        });
+        document.getElementById('registerPassword')?.addEventListener('keypress', function(e) { 
+            if(e.key === 'Enter') { e.preventDefault(); signUpWithEmail(); } 
+        });
+
+        console.log('MyWallet: All event listeners attached successfully');
+    });
+
 </script>
 
-    <script>
-        // Show loading immediately before anything else loads
-        document.body.style.overflow = 'hidden';
-    </script>
+    
     <div class="bg-mesh"></div>
 
     <!-- LOADING -->
@@ -2130,7 +2483,7 @@
                 <div class="logo-text">MyWallet</div>
             </div>
             <div class="header-actions">
-                <button class="header-btn" id="headerNotifBtn" onclick="toggleNotifBtn()" style="position:relative;">
+                <button class="header-btn" id="headerNotifBtn" onclick="showPage('notifications')" style="position:relative;">
                     <i class="fas fa-bell" id="headerNotifIcon"></i>
                     <span class="badge" id="notifBadge" style="display:none;">0</span>
                 </button>
@@ -3392,914 +3745,6 @@
     <input type="file" id="importFile" style="display:none" accept=".json" onchange="handleImport(event)">
 
     <!-- FIREBASE SDK v10 Modular -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, onAuthStateChanged, signOut, EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-        // ==================== FIREBASE CONFIG ====================
-        const firebaseConfig = {
-            apiKey: "AIzaSyCH6Gv6czN3Le-AUKCFp9_sS4KTLkc0xXg",
-            authDomain: "mywallet-53d84.firebaseapp.com",
-            projectId: "mywallet-53d84",
-            storageBucket: "mywallet-53d84.firebasestorage.app",
-            messagingSenderId: "909996782063",
-            appId: "1:909996782063:web:74519e9d81cae3a24bc61a",
-            measurementId: "G-PYZL3CFYWM"
-        };
-
-        let app, auth, db;
-        let currentUser = null;
-        let userData = null;
-
-        try {
-            app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
-        } catch(e) {
-            console.log("Firebase init error:", e);
-        }
-
-        // ==================== AUTH ====================
-        function initAuth() {
-            // Check if our standalone auth already has a user
-            const demoUser = localStorage.getItem('myWalletDemoUser');
-            if (demoUser) {
-                // Our auth system is handling it, just load Firebase data if available
-                loadLocalData();
-                if (auth) {
-                    onAuthStateChanged(auth, user => {
-                        if (user) {
-                            currentUser = user;
-                            loadUserData(user.uid);
-                        }
-                    });
-                }
-                return; // Our system handles the UI
-            }
-
-            // If no Firebase, stay on login (already visible by default)
-            if (!auth) {
-                return;
-            }
-
-            // Show loading while checking Firebase auth
-            showLoading(true);
-
-            // Set timeout in case Firebase hangs
-            let authTimeout = setTimeout(() => {
-                showLoading(false);
-            }, 3000);
-
-            // Firebase auth check
-            onAuthStateChanged(auth, user => {
-                clearTimeout(authTimeout);
-                currentUser = user;
-                showLoading(false);
-                if (user) {
-                    loadUserData(user.uid);
-                    showMainApp();
-                }
-                // If no user, login page is already visible by default
-            });
-        }
-
-        function showAuthPage(page) {
-            document.getElementById('authPages').style.display = 'flex';
-            document.getElementById('loginPage').style.display = page === 'login' ? 'flex' : 'none';
-            document.getElementById('registerPage').style.display = page === 'register' ? 'flex' : 'none';
-            document.getElementById('mainApp').style.display = 'none';
-            showLoading(false);
-        }
-
-        function showMainApp() {
-            document.getElementById('authPages').style.display = 'none';
-            document.getElementById('loginPage').style.display = 'none';
-            document.getElementById('mainApp').style.display = 'block';
-            updateProfileUI();
-            init();
-            renderAll();
-        }
-
-        function signInWithGoogle() {
-            showLoading(true);
-            if (!auth) {
-                setTimeout(() => {
-                    const demoUser = {
-                        uid: 'demo-google-' + Date.now(),
-                        email: 'demo@gmail.com',
-                        displayName: 'Demo User',
-                        photoURL: null,
-                        provider: 'google'
-                    };
-                    currentUser = demoUser;
-                    localStorage.setItem('myWalletDemoUser', JSON.stringify(demoUser));
-                    showMainApp();
-                    showToast('Signed in with Google (Demo Mode)');
-                    showLoading(false);
-                }, 1000);
-                return;
-            }
-            const provider = new GoogleAuthProvider();
-            signInWithPopup(auth, provider)
-                .then(() => { showLoading(false); })
-                .catch(error => {
-                    let msg = error.message;
-                    if (error.code === 'auth/configuration-not-found') {
-                        msg = 'Firebase Auth not enabled. Please enable it in Firebase Console → Authentication → Sign-in method.';
-                    }
-                    showAuthError('login', msg);
-                    showLoading(false);
-                });
-        }
-
-        function signInWithEmail() {
-            const email = document.getElementById('loginEmail').value.trim();
-            const password = document.getElementById('loginPassword').value;
-            if (!email || !password) {
-                showAuthError('login', 'Please enter email and password');
-                return;
-            }
-            showLoading(true);
-            if (!auth) {
-                setTimeout(() => {
-                    const demoUser = {
-                        uid: 'demo-email-' + Date.now(),
-                        email: email,
-                        displayName: email.split('@')[0],
-                        photoURL: null,
-                        provider: 'email'
-                    };
-                    currentUser = demoUser;
-                    localStorage.setItem('myWalletDemoUser', JSON.stringify(demoUser));
-                    showMainApp();
-                    showToast('Signed in successfully (Demo Mode)');
-                    showLoading(false);
-                }, 1000);
-                return;
-            }
-            signInWithEmailAndPassword(auth, email, password)
-                .then(() => showLoading(false))
-                .catch(error => {
-                    let msg = error.message;
-                    if (error.code === 'auth/user-not-found') msg = 'Account not found. Please sign up.';
-                    if (error.code === 'auth/wrong-password') msg = 'Incorrect password.';
-                    if (error.code === 'auth/invalid-email') msg = 'Invalid email address.';
-                    if (error.code === 'auth/configuration-not-found') {
-                        msg = 'Firebase Auth not enabled. Please enable it in Firebase Console → Authentication → Sign-in method.';
-                    }
-                    showAuthError('login', msg);
-                    showLoading(false);
-                });
-        }
-
-        function signUpWithEmail() {
-            const name = document.getElementById('registerName').value.trim();
-            const email = document.getElementById('registerEmail').value.trim();
-            const password = document.getElementById('registerPassword').value;
-            if (!name || !email || !password) {
-                showAuthError('register', 'Please fill all fields');
-                return;
-            }
-            if (password.length < 6) {
-                showAuthError('register', 'Password must be at least 6 characters');
-                return;
-            }
-            showLoading(true);
-            if (!auth) {
-                setTimeout(() => {
-                    const demoUser = {
-                        uid: 'demo-email-' + Date.now(),
-                        email: email,
-                        displayName: name,
-                        photoURL: null,
-                        provider: 'email'
-                    };
-                    currentUser = demoUser;
-                    localStorage.setItem('myWalletDemoUser', JSON.stringify(demoUser));
-                    showMainApp();
-                    showToast('Account created! (Demo Mode)');
-                    showLoading(false);
-                }, 1000);
-                return;
-            }
-            createUserWithEmailAndPassword(auth, email, password)
-                .then(result => updateProfile(result.user, { displayName: name }))
-                .then(() => { showToast('Account created!'); showLoading(false); })
-                .catch(error => {
-                    let msg = error.message;
-                    if (error.code === 'auth/email-already-in-use') msg = 'Email already registered. Please sign in.';
-                    if (error.code === 'auth/configuration-not-found') {
-                        msg = 'Firebase Auth not enabled. Please enable it in Firebase Console → Authentication → Sign-in method.';
-                    }
-                    showAuthError('register', msg);
-                    showLoading(false);
-                });
-        }
-
-        function logout() {
-            if (confirm('Are you sure you want to logout?')) {
-                if (auth) {
-                    signOut(auth).then(() => {
-                        currentUser = null;
-                        userData = null;
-                        showAuthPage('login');
-                        showToast('Logged out');
-                    });
-                } else {
-                    localStorage.removeItem('myWalletDemoUser');
-                    currentUser = null;
-                    showAuthPage('login');
-                        showToast('Logged out');
-                }
-            }
-        }
-
-        // ==================== PROFILE ====================
-        function updateProfileUI() {
-            if (!currentUser) return;
-            const name = currentUser.displayName || currentUser.email?.split('@')[0] || 'User';
-            const email = currentUser.email || 'user@email.com';
-            const photo = currentUser.photoURL;
-            document.getElementById('profileName').textContent = name;
-            document.getElementById('profileEmail').textContent = email;
-            document.getElementById('editName').value = name;
-            const avatar = document.getElementById('profileAvatar');
-            if (photo) {
-                avatar.innerHTML = `<img src="${photo}" alt="Profile">`;
-            } else {
-                avatar.innerHTML = `<span style="font-size:32px;font-weight:700;">${name.charAt(0).toUpperCase()}</span>`;
-            }
-        }
-
-        function saveProfile() {
-            const name = document.getElementById('editName').value.trim();
-            if (!name) { showToast('Please enter a name', 'error'); return; }
-            if (auth && currentUser) {
-                updateProfile(currentUser, { displayName: name })
-                    .then(() => { updateProfileUI(); closeModal('editProfileModal'); showToast('Profile updated!'); })
-                    .catch(err => showToast(err.message, 'error'));
-            } else {
-                currentUser.displayName = name;
-                localStorage.setItem('myWalletDemoUser', JSON.stringify(currentUser));
-                updateProfileUI();
-                closeModal('editProfileModal');
-                showToast('Profile updated!');
-            }
-        }
-
-        function changePassword() {
-            const current = document.getElementById('currentPassword').value;
-            const newPass = document.getElementById('newPassword').value;
-            const confirm = document.getElementById('confirmPassword').value;
-            if (!current || !newPass || !confirm) { showAuthError('password', 'Fill all fields'); return; }
-            if (newPass.length < 6) { showAuthError('password', 'Min 6 characters'); return; }
-            if (newPass !== confirm) { showAuthError('password', 'Passwords do not match'); return; }
-            if (!auth) {
-                showToast('Password updated (Demo Mode)');
-                closeModal('changePasswordModal');
-                document.getElementById('currentPassword').value = '';
-                document.getElementById('newPassword').value = '';
-                document.getElementById('confirmPassword').value = '';
-                return;
-            }
-            const credential = EmailAuthProvider.credential(currentUser.email, current);
-            reauthenticateWithCredential(currentUser, credential)
-                .then(() => updatePassword(currentUser, newPass))
-                .then(() => {
-                    showToast('Password updated!');
-                    closeModal('changePasswordModal');
-                    document.getElementById('currentPassword').value = '';
-                    document.getElementById('newPassword').value = '';
-                    document.getElementById('confirmPassword').value = '';
-                })
-                .catch(error => {
-                    let msg = error.message;
-                    if (error.code === 'auth/wrong-password') msg = 'Current password incorrect';
-                    showAuthError('password', msg);
-                });
-        }
-
-        // ==================== USER DATA ====================
-        function loadUserData(uid) {
-            if (!db) return;
-            getDoc(doc(db, 'users', uid))
-                .then(docSnap => {
-                    if (docSnap.exists()) {
-                        userData = docSnap.data();
-                        if (userData.transactions) data.transactions = userData.transactions;
-                        if (userData.debts) data.debts = userData.debts;
-                        if (userData.budgets) data.budgets = userData.budgets;
-                        if (userData.salary) data.salary = userData.salary;
-                        if (userData.currency) data.currency = userData.currency;
-                        renderAll();
-                    }
-                })
-                .catch(err => console.log('Error loading data:', err));
-        }
-
-        function saveUserData() {
-            // Always save to localStorage first
-            saveLocalData();
-            // Then sync to Firebase if logged in
-            if (!db || !currentUser) return;
-            const saveData = {
-                transactions: data.transactions,
-                debts: data.debts,
-                budgets: data.budgets,
-                salary: data.salary,
-                currency: data.currency,
-                updatedAt: serverTimestamp()
-            };
-            setDoc(doc(db, 'users', currentUser.uid), saveData, { merge: true })
-                .catch(err => console.log('Error saving:', err));
-        }
-
-                // ==================== NOTIFICATIONS ====================
-        let notifications = [];
-
-        function loadNotifications() {
-            const saved = localStorage.getItem('myWalletNotifications');
-            if (saved) {
-                try { notifications = JSON.parse(saved); } catch(e) {}
-            }
-            updateNotifBadge();
-        }
-
-        function saveNotifications() {
-            localStorage.setItem('myWalletNotifications', JSON.stringify(notifications.slice(0, 50)));
-            updateNotifBadge();
-        }
-
-        function addNotification(title, message, type = 'info') {
-            const notif = {
-                id: Date.now(),
-                title,
-                message,
-                type,
-                read: false,
-                time: Date.now()
-            };
-            notifications.unshift(notif);
-            saveNotifications();
-            updateNotifBadge();
-        }
-
-        function updateNotifBadge() {
-            const badge = document.getElementById('notifBadge');
-            const unread = notifications.filter(n => !n.read).length;
-            if (badge) {
-                badge.textContent = unread;
-                badge.style.display = unread > 0 ? 'flex' : 'none';
-            }
-        }
-
-        function showNotifications() {
-            const unread = notifications.filter(n => !n.read).length;
-            if (unread === 0 && notifications.length === 0) {
-                showToast('No new notifications');
-                return;
-            }
-            // Mark all as read when opened
-            notifications.forEach(n => n.read = true);
-            saveNotifications();
-
-            // Show recent notifications as toasts
-            const recent = notifications.slice(0, 3);
-            recent.forEach((n, i) => {
-                setTimeout(() => showToast(n.message, n.type === 'error' ? 'error' : 'success'), i * 1500);
-            });
-        }
-
-        // ==================== APP DATA ====================
-        let data = {
-            currency: 'IQD',
-            salary: 0,
-            transactions: [],
-            debts: [],
-            budgets: {
-                food: { limit: 50000, spent: 0, icon: 'utensils', color: '#ef4444' },
-                transport: { limit: 30000, spent: 0, icon: 'car', color: '#06b6d4' },
-                shopping: { limit: 40000, spent: 0, icon: 'shopping-bag', color: '#8b5cf6' },
-                entertainment: { limit: 25000, spent: 0, icon: 'gamepad', color: '#f59e0b' },
-                health: { limit: 20000, spent: 0, icon: 'heart-pulse', color: '#10b981' },
-                other: { limit: 15000, spent: 0, icon: 'ellipsis', color: '#64748b' }
-            }
-        };
-
-        // Load data from localStorage on startup
-        function loadLocalData() {
-            const saved = localStorage.getItem('myWalletData');
-            if (saved) {
-                try {
-                    const parsed = JSON.parse(saved);
-                    if (parsed.transactions) data.transactions = parsed.transactions;
-                    if (parsed.debts) data.debts = parsed.debts;
-                    if (parsed.budgets) data.budgets = parsed.budgets;
-                    if (parsed.salary !== undefined) data.salary = parsed.salary;
-                    if (parsed.currency) data.currency = parsed.currency;
-                } catch(e) { console.log('Error loading local data', e); }
-            }
-        }
-
-        // Save data to localStorage
-        function saveLocalData() {
-            const saveData = {
-                transactions: data.transactions,
-                debts: data.debts,
-                budgets: data.budgets,
-                salary: data.salary,
-                currency: data.currency
-            };
-            localStorage.setItem('myWalletData', JSON.stringify(saveData));
-        }
-
-        let currentPage = 'home';
-
-        // ==================== INIT ====================
-        function init() {
-            updateDate();
-            renderAll();
-            loadNotifications();
-            setInterval(updateDate, 60000);
-            if (localStorage.getItem('myWalletTheme') === 'light') {
-                document.body.classList.add('light-mode');
-                document.getElementById('themeToggle').classList.remove('active');
-            }
-        }
-
-        function updateDate() {
-            const now = new Date();
-            const options = { weekday: 'short', month: 'short', day: 'numeric' };
-            document.getElementById('dateDisplay').textContent = now.toLocaleDateString('en-US', options);
-        }
-
-        // ==================== NAVIGATION ====================
-        
-        function renderAll() {
-            const totalIncome = data.transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-            const totalExpense = data.transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-            const balance = totalIncome - totalExpense + data.salary;
-            const totalDebts = data.debts.filter(d => d.type === 'owe').reduce((sum, d) => sum + d.amount, 0);
-            const savings = Math.max(0, balance - totalExpense);
-
-            document.getElementById('totalBalance').textContent = formatNumber(balance);
-            document.getElementById('totalIncome').textContent = formatNumber(totalIncome + data.salary);
-            document.getElementById('totalExpense').textContent = formatNumber(totalExpense);
-            document.getElementById('totalSavings').textContent = formatNumber(savings);
-            document.getElementById('totalDebts').textContent = formatNumber(totalDebts);
-            document.getElementById('salaryAmount').textContent = formatNumber(data.salary) + ' ' + data.currency;
-            document.getElementById('currencyLabel').textContent = data.currency;
-
-            const pendingDebts = data.debts.filter(d => d.type === 'owe').length;
-            document.getElementById('debtChange').textContent = pendingDebts + ' pending';
-            document.getElementById('debtChange').className = pendingDebts > 0 ? 'stat-change negative' : 'stat-change positive';
-
-            renderBudgets();
-            renderTransactions();
-            renderDebts();
-            renderAnalytics();
-        }
-
-        function renderBudgets() {
-            const container = document.getElementById('budgetList');
-            container.innerHTML = '';
-            const categoryNames = { food: 'Food & Dining', transport: 'Transport', shopping: 'Shopping', entertainment: 'Entertainment', health: 'Health', other: 'Other' };
-            Object.entries(data.budgets).forEach(([key, budget]) => {
-                const percentage = Math.min((budget.spent / budget.limit) * 100, 100);
-                const remaining = budget.limit - budget.spent;
-                const isOver = budget.spent > budget.limit;
-                const div = document.createElement('div');
-                div.className = 'budget-item';
-                div.onclick = () => openBudgetModal(key);
-                div.innerHTML = `
-                    <div class="budget-header">
-                        <div class="budget-info">
-                            <div class="budget-icon ${key}"><i class="fas fa-${budget.icon}"></i></div>
-                            <div><div class="budget-name">${categoryNames[key]}</div><div class="budget-limit">${formatNumber(budget.limit)} / week</div></div>
-                        </div>
-                        <div class="budget-amount">
-                            <div class="budget-spent">${formatNumber(budget.spent)}</div>
-                            <div class="budget-remaining" style="color:${isOver ? 'var(--danger)' : 'var(--text-muted)'}">${isOver ? 'Over by ' + formatNumber(Math.abs(remaining)) : formatNumber(remaining) + ' left'}</div>
-                        </div>
-                    </div>
-                    <div class="progress-bar"><div class="progress-fill" style="width:${percentage}%;background:${isOver ? 'var(--danger)' : 'var(--gradient-1)'}"></div></div>
-                `;
-                container.appendChild(div);
-            });
-        }
-
-        function renderTransactions() {
-            const container = document.getElementById('transactionList');
-            if (!container) return;
-            container.innerHTML = '';
-            if (data.transactions.length === 0) {
-                container.innerHTML = `<div class="empty-state"><i class="fas fa-receipt"></i><p>No transactions yet. Tap + to add one!</p></div>`;
-                return;
-            }
-            const sorted = [...data.transactions].sort((a, b) => b.date - a.date);
-            const icons = { food: 'utensils', transport: 'car', shopping: 'shopping-bag', entertainment: 'gamepad', health: 'heart-pulse', salary: 'money-bill-wave', other: 'ellipsis' };
-            const colors = { food: '#ef4444', transport: '#06b6d4', shopping: '#8b5cf6', entertainment: '#f59e0b', health: '#10b981', salary: '#6366f1', other: '#64748b' };
-            sorted.forEach(t => {
-                const rgb = hexToRgb(colors[t.category] || '#64748b');
-                const div = document.createElement('div');
-                div.className = 'transaction-item';
-                div.innerHTML = `
-                    <div class="transaction-icon" style="background:rgba(${rgb},0.15);color:${colors[t.category] || '#64748b'}"><i class="fas fa-${icons[t.category] || 'ellipsis'}"></i></div>
-                    <div class="transaction-info"><div class="transaction-name">${t.description || t.category}</div><div class="transaction-date">${new Date(t.date).toLocaleDateString()}</div></div>
-                    <div class="transaction-amount ${t.type}">${t.type === 'income' ? '+' : '-'}${formatNumber(t.amount)} ${data.currency}</div>
-                `;
-                container.appendChild(div);
-            });
-        }
-
-        function renderDebts() {
-            const container = document.getElementById('debtList');
-            if (!container) return;
-            container.innerHTML = '';
-            if (data.debts.length === 0) {
-                container.innerHTML = `<div class="empty-state"><i class="fas fa-hand-holding-dollar"></i><p>No debts yet. Tap + to add one!</p></div>`;
-                return;
-            }
-            data.debts.forEach((d, index) => {
-                const div = document.createElement('div');
-                div.className = 'debt-card';
-                div.innerHTML = `
-                    <div class="debt-header">
-                        <div class="debt-person">
-                            <div class="debt-avatar">${d.person.charAt(0).toUpperCase()}</div>
-                            <div><div class="debt-name">${d.person}</div><div class="debt-type">${d.type === 'owe' ? 'You owe them' : 'They owe you'}</div></div>
-                        </div>
-                        <div class="debt-amount">${formatNumber(d.amount)} ${data.currency}</div>
-                    </div>
-                    <div class="debt-actions">
-                        <button class="debt-btn pay" onclick="payDebt(${index})"><i class="fas fa-check"></i> Mark Paid</button>
-                        <button class="debt-btn" onclick="deleteDebt(${index})"><i class="fas fa-trash"></i> Delete</button>
-                    </div>
-                `;
-                container.appendChild(div);
-            });
-        }
-
-        function renderAnalytics() {
-            const chart = document.getElementById('spendingChart');
-            if (!chart) return;
-            chart.innerHTML = '';
-
-            // Calculate real spending data from transactions
-            const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-            const daySpending = [0, 0, 0, 0, 0, 0, 0];
-
-            data.transactions.filter(t => t.type === 'expense').forEach(t => {
-                const day = new Date(t.date).getDay();
-                const dayIndex = day === 0 ? 6 : day - 1; // Convert to Mon-Sun
-                daySpending[dayIndex] += t.amount;
-            });
-
-            const max = Math.max(...daySpending, 1);
-            days.forEach((day, i) => {
-                const height = (daySpending[i] / max) * 100;
-                const bar = document.createElement('div');
-                bar.className = 'chart-bar';
-                bar.style.height = Math.max(height, 5) + '%';
-                bar.innerHTML = `<div class="chart-bar-value">${formatNumber(daySpending[i])}</div><div class="chart-bar-label">${day}</div>`;
-                chart.appendChild(bar);
-            });
-
-            const breakdown = document.getElementById('categoryBreakdown');
-            if (!breakdown) return;
-            const cats = Object.entries(data.budgets);
-            breakdown.innerHTML = cats.map(([key, b]) => {
-                const pct = Math.round((b.spent / (b.limit || 1)) * 100);
-                return `
-                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
-                        <div style="width:36px;height:36px;border-radius:10px;background:${b.color}20;color:${b.color};display:flex;align-items:center;justify-content:center;"><i class="fas fa-${b.icon}"></i></div>
-                        <div style="flex:1;">
-                            <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="font-size:13px;font-weight:600;color:var(--text);">${key.charAt(0).toUpperCase() + key.slice(1)}</span><span style="font-size:12px;color:var(--text-muted);">${pct}%</span></div>
-                            <div style="height:6px;background:var(--bg-input);border-radius:3px;overflow:hidden;"><div style="width:${Math.min(pct,100)}%;height:100%;background:${b.color};border-radius:3px;transition:width 0.6s;"></div></div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function hexToRgb(hex) {
-            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-            return result ? `${parseInt(result[1], 16)},${parseInt(result[2], 16)},${parseInt(result[3], 16)}` : '100,116,139';
-        }
-
-        function formatNumber(num) {
-            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-            if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-            return num.toLocaleString();
-        }
-
-        function openModal(id) {
-            document.getElementById(id).classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeModal(id) {
-            document.getElementById(id).classList.remove('active');
-            document.body.style.overflow = '';
-        }
-
-        function openBudgetModal(category) {
-            if (category) {
-                document.getElementById('budgetCategorySelect').value = category;
-                document.getElementById('budgetLimit').value = data.budgets[category].limit;
-            }
-            openModal('budgetModal');
-        }
-
-        // ==================== ACTIONS ====================
-        function addTransaction() {
-            const amount = parseFloat(document.getElementById('transAmount').value);
-            const type = document.getElementById('transType').value;
-            const category = document.getElementById('transCategory').value;
-            const desc = document.getElementById('transDesc').value;
-            if (!amount || amount <= 0) { showToast('Enter valid amount', 'error'); return; }
-            data.transactions.push({ amount, type, category, description: desc, date: Date.now() });
-            if (type === 'expense' && data.budgets[category]) data.budgets[category].spent += amount;
-            saveUserData();
-            renderAll();
-            renderTransactions();
-            closeModal('transactionModal');
-
-            // Send notification
-            const notifTitle = type === 'income' ? 'Money Added!' : 'Transaction Added';
-            const notifMsg = type === 'income' 
-                ? `+${formatNumber(amount)} ${data.currency} added to your balance`
-                : `-${formatNumber(amount)} ${data.currency} spent on ${category}`;
-            addNotification(notifTitle, notifMsg, type === 'income' ? 'success' : 'info');
-
-            // Check if budget exceeded
-            if (type === 'expense' && data.budgets[category]) {
-                const budget = data.budgets[category];
-                if (budget.spent > budget.limit) {
-                    addNotification('Budget Alert!', `You've exceeded your ${category} budget!`, 'error');
-                } else if (budget.spent > budget.limit * 0.8) {
-                    addNotification('Budget Warning', `You've used 80% of your ${category} budget`, 'warning');
-                }
-            }
-
-            showToast('Transaction added!');
-            document.getElementById('transAmount').value = '';
-            document.getElementById('transDesc').value = '';
-        }
-
-        function addSalary() {
-            const amount = parseFloat(document.getElementById('salaryInput').value);
-            if (!amount || amount <= 0) { showToast('Enter valid salary', 'error'); return; }
-            data.salary = amount;
-            saveUserData();
-            renderAll();
-            closeModal('salaryModal');
-            addNotification('Salary Added!', `Monthly salary set to ${formatNumber(amount)} ${data.currency}`, 'success');
-            showToast('Salary saved!');
-            document.getElementById('salaryInput').value = '';
-        }
-
-        function addDebt() {
-            const person = document.getElementById('debtPerson').value.trim();
-            const amount = parseFloat(document.getElementById('debtAmount').value);
-            const type = document.getElementById('debtType').value;
-            if (!person || !amount || amount <= 0) { showToast('Fill all fields', 'error'); return; }
-            data.debts.push({ person, amount, type });
-            saveUserData();
-            renderAll();
-            renderDebts();
-            closeModal('debtModal');
-
-            const notifTitle = type === 'owe' ? 'Debt Added' : 'Money Owed to You';
-            const notifMsg = type === 'owe'
-                ? `You owe ${formatNumber(amount)} ${data.currency} to ${person}`
-                : `${person} owes you ${formatNumber(amount)} ${data.currency}`;
-            addNotification(notifTitle, notifMsg, 'info');
-
-            showToast('Debt added!');
-            document.getElementById('debtPerson').value = '';
-            document.getElementById('debtAmount').value = '';
-        }
-
-        function payDebt(index) {
-            const debt = data.debts[index];
-            data.debts.splice(index, 1);
-            saveUserData();
-            renderDebts();
-            renderAll();
-            addNotification('Debt Paid!', `Debt with ${debt.person} marked as paid`, 'success');
-            showToast('Debt marked paid!');
-        }
-
-        function deleteDebt(index) {
-            data.debts.splice(index, 1);
-            saveUserData();
-            renderDebts();
-            renderAll();
-            showToast('Debt deleted!');
-        }
-
-        function saveBudget() {
-            const category = document.getElementById('budgetCategorySelect').value;
-            const limit = parseFloat(document.getElementById('budgetLimit').value);
-            if (!limit || limit <= 0) { showToast('Enter valid limit', 'error'); return; }
-            data.budgets[category].limit = limit;
-            saveUserData();
-            renderAll();
-            closeModal('budgetModal');
-            addNotification('Budget Updated', `${category} budget set to ${formatNumber(limit)} ${data.currency}`, 'success');
-            showToast('Budget updated!');
-        }
-
-        function saveCurrency() {
-            const currency = document.getElementById('currencySelect').value;
-            data.currency = currency;
-            saveUserData();
-            renderAll();
-            closeModal('currencyModal');
-            const names = { IQD: 'Iraqi Dinar', USD: 'US Dollar', EUR: 'Euro', GBP: 'British Pound', TRY: 'Turkish Lira' };
-            document.getElementById('currentCurrency').textContent = currency + ' (' + names[currency] + ')';
-            addNotification('Currency Changed', `Currency set to ${names[currency]}`, 'success');
-            showToast('Currency updated!');
-        }
-
-        function toggleTheme() {
-            document.body.classList.toggle('light-mode');
-            const isDark = !document.body.classList.contains('light-mode');
-            document.getElementById('themeToggle').classList.toggle('active', isDark);
-            localStorage.setItem('myWalletTheme', isDark ? 'dark' : 'light');
-        }
-
-        function confirmReset() { openModal('resetModal'); }
-
-        function resetAllData() {
-            data = {
-                currency: 'IQD', salary: 0, transactions: [], debts: [],
-                budgets: {
-                    food: { limit: 50000, spent: 0, icon: 'utensils', color: '#ef4444' },
-                    transport: { limit: 30000, spent: 0, icon: 'car', color: '#06b6d4' },
-                    shopping: { limit: 40000, spent: 0, icon: 'shopping-bag', color: '#8b5cf6' },
-                    entertainment: { limit: 25000, spent: 0, icon: 'gamepad', color: '#f59e0b' },
-                    health: { limit: 20000, spent: 0, icon: 'heart-pulse', color: '#10b981' },
-                    other: { limit: 15000, spent: 0, icon: 'ellipsis', color: '#64748b' }
-                }
-            };
-            localStorage.removeItem('myWalletData');
-            saveUserData();
-            renderAll();
-            closeModal('resetModal');
-            addNotification('Data Reset', 'All your data has been reset', 'error');
-            showToast('All data reset!');
-        }
-
-        function exportData() {
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'mywallet-data.json';
-            a.click();
-            URL.revokeObjectURL(url);
-            addNotification('Data Exported', 'Your data has been exported successfully', 'success');
-            showToast('Data exported!');
-        }
-
-        function importData() { document.getElementById('importFile').click(); }
-
-        function handleImport(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const imported = JSON.parse(e.target.result);
-                    if (imported.budgets && imported.transactions !== undefined) {
-                        data = imported;
-                        saveLocalData();
-                        saveUserData();
-                        renderAll();
-                        showToast('Data imported!');
-                    } else { showToast('Invalid file', 'error'); }
-                } catch (err) { showToast('Error reading file', 'error'); }
-            };
-            reader.readAsText(file);
-            event.target.value = '';
-        }
-
-        // ==================== SUPPORT / CONTACT ====================
-        function toggleFaq(item) {
-            item.classList.toggle('open');
-        }
-
-        function sendContact() {
-            const name = document.getElementById('contactName').value.trim();
-            const email = document.getElementById('contactEmail').value.trim();
-            const subject = document.getElementById('contactSubject').value;
-            const message = document.getElementById('contactMessage').value.trim();
-
-            if (!name || !email || !message) {
-                showToast('Please fill all fields', 'error');
-                return;
-            }
-
-            // Open email client with pre-filled data
-            const mailtoLink = `mailto:maroduhoki6@gmail.com?subject=MyWallet Support - ${encodeURIComponent(subject)}&body=${encodeURIComponent(
-                `Name: ${name}
-Email: ${email}
-
-Message:
-${message}`
-            )}`;
-            window.location.href = mailtoLink;
-
-            showToast('Opening email client...');
-
-            // Clear form
-            document.getElementById('contactName').value = '';
-            document.getElementById('contactEmail').value = '';
-            document.getElementById('contactMessage').value = '';
-        }
-
-        // ==================== UI HELPERS ====================
-        function showAuthError(type, message) {
-            const el = document.getElementById(type + 'Error');
-            if (el) { el.textContent = message; el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 5000); }
-        }
-
-        function showLoading(show) {
-            const overlay = document.getElementById('loadingOverlay');
-            if (show) {
-                overlay.classList.add('active');
-                document.body.style.overflow = 'hidden';
-            } else {
-                overlay.classList.remove('active');
-                document.body.style.overflow = '';
-            }
-        }
-
-        function showToast(message, type = 'success') {
-            const toast = document.getElementById('toast');
-            const toastIcon = document.getElementById('toastIcon');
-            const toastMessage = document.getElementById('toastMessage');
-            toastMessage.textContent = message;
-            toastIcon.className = 'toast-icon ' + type;
-            toastIcon.innerHTML = type === 'success' ? '<i class="fas fa-check"></i>' : '<i class="fas fa-exclamation"></i>';
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 3000);
-        }
-
-        // showNotifications already defined above
-
-        // Close modal on overlay click
-        document.querySelectorAll('.modal-overlay').forEach(overlay => {
-            overlay.addEventListener('click', function(e) {
-                if (e.target === this) { this.classList.remove('active'); document.body.style.overflow = ''; }
-            });
-        });
-
-        // Enter key on auth inputs
-        document.getElementById('loginPassword')?.addEventListener('keypress', e => { if (e.key === 'Enter') signInWithEmail(); });
-        document.getElementById('registerPassword')?.addEventListener('keypress', e => { if (e.key === 'Enter') signUpWithEmail(); });
-
-        // ==================== START ====================
-        
-        // Expose functions to global scope for HTML onclick handlers
-        // Note: window.showPage is handled by standalone script for notification icon toggle
-        window.signInWithGoogle = signInWithGoogle;
-        window.signInWithEmail = signInWithEmail;
-        window.signUpWithEmail = signUpWithEmail;
-        window.logout = logout;
-        window.saveProfile = saveProfile;
-        window.changePassword = changePassword;
-        window.showAuthPage = showAuthPage;
-        // // window.showPage = showPage; // REMOVED - standalone script handles this
-        window.openModal = openModal;
-        window.closeModal = closeModal;
-        window.toggleTheme = toggleTheme;
-        window.toggleFaq = toggleFaq;
-        window.sendContact = sendContact;
-        window.exportData = exportData;
-        window.importData = importData;
-        window.confirmReset = confirmReset;
-        window.resetAllData = resetAllData;
-        window.addTransaction = addTransaction;
-        window.addSalary = addSalary;
-        window.addDebt = addDebt;
-        window.payDebt = payDebt;
-        window.deleteDebt = deleteDebt;
-        window.saveBudget = saveBudget;
-        window.saveCurrency = saveCurrency;
-        window.handleImport = handleImport;
-        window.showNotifications = showNotifications;
-        window.openBudgetModal = openBudgetModal;
-        window.loadLocalData = loadLocalData;
-        window.saveLocalData = saveLocalData;
-        window.loadNotifications = loadNotifications;
-        window.addNotification = addNotification;
-        window.updateNotifBadge = updateNotifBadge;
-        window.showNotifications = showNotifications;
-initAuth();
-    </script>
+    
 </body>
 </html>
