@@ -373,7 +373,76 @@
         }
     
         /* DOMINO-STYLE FOOTER */
-        .site-footer {
+        
+        /* NOTIFICATIONS */
+        .notification-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            padding: 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            margin-bottom: 10px;
+            transition: all 0.3s;
+            cursor: pointer;
+            position: relative;
+        }
+        .notification-item:hover {
+            transform: translateX(4px);
+            box-shadow: var(--shadow);
+        }
+        .notification-item.unread {
+            border-left: 3px solid var(--primary);
+        }
+        .notification-item.unread::before {
+            content: '';
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 8px;
+            height: 8px;
+            background: var(--primary);
+            border-radius: 50%;
+        }
+        .notification-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+        .notification-icon.success { background: rgba(16,185,129,0.15); color: var(--success); }
+        .notification-icon.error { background: rgba(239,68,68,0.15); color: var(--danger); }
+        .notification-icon.warning { background: rgba(245,158,11,0.15); color: var(--warning); }
+        .notification-icon.info { background: rgba(99,102,241,0.15); color: var(--primary); }
+        .notification-content { flex: 1; }
+        .notification-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+        .notification-message { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+        .notification-time { font-size: 11px; color: var(--text-muted); margin-top: 6px; }
+        .notification-delete {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: var(--bg-input);
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+        .notification-delete:hover {
+            background: rgba(239,68,68,0.15);
+            color: var(--danger);
+        }
+
+.site-footer {
             margin-top: 60px;
             padding: 40px 20px 30px;
             text-align: center;
@@ -562,7 +631,7 @@
         document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
         document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
 
-        var pageMap = { 'home': 'pageHome', 'transactions': 'pageTransactions', 'debts': 'pageDebts', 'analytics': 'pageAnalytics', 'profile': 'pageProfile', 'settings': 'pageSettings', 'terms': 'pageTerms', 'privacy': 'pagePrivacy', 'support': 'pageSupport', 'contact': 'pageContact' };
+        var pageMap = { 'home': 'pageHome', 'transactions': 'pageTransactions', 'debts': 'pageDebts', 'analytics': 'pageAnalytics', 'profile': 'pageProfile', 'settings': 'pageSettings', 'terms': 'pageTerms', 'privacy': 'pagePrivacy', 'support': 'pageSupport', 'contact': 'pageContact', 'notifications': 'pageNotifications' };
         var navMap = { 'home': 0, 'transactions': 1, 'analytics': 2, 'profile': 3 };
 
         if(pageMap[page]) {
@@ -644,6 +713,8 @@
 
     // ===== ON LOAD - Check if user is logged in =====
     document.addEventListener('DOMContentLoaded', function() {
+        loadNotifications();
+
         var demoUser = localStorage.getItem('myWalletDemoUser');
         if(demoUser) {
             showMainAppScreen();
@@ -661,6 +732,554 @@
             if(toggle) toggle.classList.remove('active');
         }
     });
+
+    // ===== NOTIFICATIONS SYSTEM =====
+    var notifications = [];
+
+    function loadNotifications() {
+        var saved = localStorage.getItem('myWalletNotifications');
+        if(saved) {
+            try { notifications = JSON.parse(saved); } catch(e) {}
+        }
+        updateNotifBadgeCount();
+    }
+
+    function saveNotifications() {
+        localStorage.setItem('myWalletNotifications', JSON.stringify(notifications.slice(0, 50)));
+        updateNotifBadgeCount();
+    }
+
+    function addNotification(title, message, type) {
+        var notif = {
+            id: Date.now(),
+            title: title,
+            message: message,
+            type: type || 'info',
+            read: false,
+            time: Date.now()
+        };
+        notifications.unshift(notif);
+        saveNotifications();
+        updateNotifBadgeCount();
+    }
+
+    function updateNotifBadgeCount() {
+        var badge = document.getElementById('notifBadge');
+        var unread = notifications.filter(function(n) { return !n.read; }).length;
+        if(badge) {
+            badge.textContent = unread;
+            badge.style.display = unread > 0 ? 'flex' : 'none';
+        }
+    }
+
+    function renderNotifications() {
+        var container = document.getElementById('notificationsList');
+        var emptyState = document.getElementById('notifEmpty');
+        if(!container) return;
+
+        // Remove existing items (keep empty state)
+        var items = container.querySelectorAll('.notification-item');
+        items.forEach(function(item) { item.remove(); });
+
+        if(notifications.length === 0) {
+            if(emptyState) emptyState.style.display = 'block';
+            return;
+        }
+
+        if(emptyState) emptyState.style.display = 'none';
+
+        notifications.forEach(function(n, index) {
+            var div = document.createElement('div');
+            div.className = 'notification-item ' + (n.read ? '' : 'unread');
+            div.onclick = function() { markNotificationRead(index); };
+
+            var iconClass = n.type === 'success' ? 'check' : n.type === 'error' ? 'exclamation' : n.type === 'warning' ? 'bell' : 'info';
+            var timeAgo = getTimeAgo(n.time);
+
+            div.innerHTML = 
+                '<div class="notification-icon ' + n.type + '"><i class="fas fa-' + iconClass + '"></i></div>' +
+                '<div class="notification-content">' +
+                    '<div class="notification-title">' + n.title + '</div>' +
+                    '<div class="notification-message">' + n.message + '</div>' +
+                    '<div class="notification-time"><i class="fas fa-clock" style="margin-right:4px;"></i>' + timeAgo + '</div>' +
+                '</div>' +
+                '<button class="notification-delete" onclick="event.stopPropagation(); deleteNotification(' + index + ');"><i class="fas fa-times"></i></button>';
+
+            container.appendChild(div);
+        });
+    }
+
+    function getTimeAgo(timestamp) {
+        var seconds = Math.floor((Date.now() - timestamp) / 1000);
+        if(seconds < 60) return 'Just now';
+        var minutes = Math.floor(seconds / 60);
+        if(minutes < 60) return minutes + ' min ago';
+        var hours = Math.floor(minutes / 60);
+        if(hours < 24) return hours + ' hour ago';
+        var days = Math.floor(hours / 24);
+        return days + ' day ago';
+    }
+
+    function markNotificationRead(index) {
+        if(notifications[index] && !notifications[index].read) {
+            notifications[index].read = true;
+            saveNotifications();
+            renderNotifications();
+        }
+    }
+
+    function deleteNotification(index) {
+        notifications.splice(index, 1);
+        saveNotifications();
+        renderNotifications();
+    }
+
+    window.clearAllNotifications = function() {
+        if(confirm('Clear all notifications?')) {
+            notifications = [];
+            saveNotifications();
+            renderNotifications();
+            showToastMsg('All notifications cleared');
+        }
+    };
+
+    // Override showPage to render notifications when on that page
+    var originalShowPage = window.showPage;
+    window.showPage = function(page) {
+        originalShowPage(page);
+        if(page === 'notifications') {
+            renderNotifications();
+            // Mark all as read when viewing
+            notifications.forEach(function(n) { n.read = true; });
+            saveNotifications();
+        }
+    };
+
+
+    // ===== BUDGET FUNCTIONS =====
+    window.onBudgetCategoryChange = function() {
+        var select = document.getElementById('budgetCategorySelect');
+        var customGroup = document.getElementById('customCategoryGroup');
+        if(select && customGroup) {
+            customGroup.style.display = select.value === 'custom' ? 'block' : 'none';
+        }
+    };
+
+    window.saveBudget = function() {
+        var category = document.getElementById('budgetCategorySelect').value;
+        var limit = parseFloat(document.getElementById('budgetLimit').value);
+        var period = document.getElementById('budgetPeriod').value;
+        if(!limit || limit <= 0) { showToastMsg('Enter valid limit', 'error'); return; }
+
+        if(category === 'custom') {
+            var customName = document.getElementById('customCategoryName').value.trim().toLowerCase().replace(/\s+/g, '_');
+            if(!customName) { showToastMsg('Enter custom category name', 'error'); return; }
+            var colors = ['#ef4444', '#06b6d4', '#8b5cf6', '#f59e0b', '#10b981', '#ec4899', '#6366f1'];
+            var randomColor = colors[Math.floor(Math.random() * colors.length)];
+            walletData.budgets[customName] = {
+                limit: limit,
+                spent: 0,
+                icon: 'tag',
+                color: randomColor,
+                period: period,
+                customName: document.getElementById('customCategoryName').value.trim()
+            };
+            category = customName;
+        } else {
+            walletData.budgets[category].limit = limit;
+            walletData.budgets[category].period = period;
+        }
+
+        saveLocalData();
+        renderAll();
+        closeModal('budgetModal');
+        addNotification('Budget Updated', (walletData.budgets[category].customName || category) + ' ' + period + ' budget set to ' + fmtNum(limit) + ' ' + walletData.currency, 'success');
+        showToastMsg('Budget saved!');
+
+        document.getElementById('customCategoryName').value = '';
+        document.getElementById('customCategoryGroup').style.display = 'none';
+    };
+
+    window.openBudgetModal = function(category) {
+        var select = document.getElementById('budgetCategorySelect');
+        var limitInput = document.getElementById('budgetLimit');
+        var periodSelect = document.getElementById('budgetPeriod');
+        var title = document.getElementById('budgetModalTitle');
+        var customGroup = document.getElementById('customCategoryGroup');
+
+        if(category && walletData.budgets[category]) {
+            var budget = walletData.budgets[category];
+            var isCustom = !['food','transport','shopping','entertainment','health','other'].includes(category);
+            if(isCustom) {
+                select.value = 'custom';
+                if(customGroup) customGroup.style.display = 'block';
+                var customNameInput = document.getElementById('customCategoryName');
+                if(customNameInput) customNameInput.value = budget.customName || category;
+            } else {
+                select.value = category;
+                if(customGroup) customGroup.style.display = 'none';
+            }
+            if(limitInput) limitInput.value = budget.limit;
+            if(periodSelect) periodSelect.value = budget.period || 'weekly';
+            if(title) title.textContent = 'Edit Budget';
+        } else {
+            if(select) select.value = 'food';
+            if(limitInput) limitInput.value = '';
+            if(periodSelect) periodSelect.value = 'weekly';
+            if(title) title.textContent = 'Set Budget';
+            if(customGroup) customGroup.style.display = 'none';
+        }
+        openModal('budgetModal');
+    };
+
+    // ===== RENDER FUNCTIONS =====
+    function renderBudgets() {
+        var container = document.getElementById('budgetList');
+        if(!container) return;
+        container.innerHTML = '';
+        var categoryNames = { food: 'Food & Dining', transport: 'Transport', shopping: 'Shopping', entertainment: 'Entertainment', health: 'Health', other: 'Other' };
+        Object.entries(walletData.budgets).forEach(function(item) {
+            var key = item[0], budget = item[1];
+            var percentage = Math.min((budget.spent / budget.limit) * 100, 100);
+            var remaining = budget.limit - budget.spent;
+            var isOver = budget.spent > budget.limit;
+            var displayName = budget.customName || categoryNames[key] || key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ');
+            var periodLabel = budget.period === 'monthly' ? '/ month' : '/ week';
+            var div = document.createElement('div');
+            div.className = 'budget-item';
+            div.onclick = function() { openBudgetModal(key); };
+            div.innerHTML = '<div class="budget-header"><div class="budget-info"><div class="budget-icon ' + key + '" style="background:' + budget.color + '20;color:' + budget.color + ';"><i class="fas fa-' + budget.icon + '"></i></div><div><div class="budget-name">' + displayName + '</div><div class="budget-limit">' + fmtNum(budget.limit) + ' ' + periodLabel + '</div></div></div><div class="budget-amount"><div class="budget-spent">' + fmtNum(budget.spent) + '</div><div class="budget-remaining" style="color:' + (isOver ? 'var(--danger)' : 'var(--text-muted)') + '">' + (isOver ? 'Over by ' + fmtNum(Math.abs(remaining)) : fmtNum(remaining) + ' left') + '</div></div></div><div class="progress-bar"><div class="progress-fill" style="width:' + percentage + '%;background:' + (isOver ? 'var(--danger)' : budget.color || 'var(--gradient-1)') + '"></div></div>';
+            container.appendChild(div);
+        });
+    }
+
+    var currentChartPeriod = 'week';
+
+    function renderAnalytics() {
+        var chart = document.getElementById('spendingChart');
+        if(!chart) return;
+        chart.innerHTML = '';
+
+        var labels, spendingData, max;
+
+        if(currentChartPeriod === 'week') {
+            labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+            spendingData = [0, 0, 0, 0, 0, 0, 0];
+            walletData.transactions.filter(function(t) { return t.type === 'expense'; }).forEach(function(t) {
+                var day = new Date(t.date).getDay();
+                var dayIndex = day === 0 ? 6 : day - 1;
+                spendingData[dayIndex] += t.amount;
+            });
+        } else if(currentChartPeriod === 'month') {
+            labels = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
+            spendingData = [0, 0, 0, 0];
+            var now = new Date();
+            walletData.transactions.filter(function(t) { return t.type === 'expense'; }).forEach(function(t) {
+                var tDate = new Date(t.date);
+                var weekDiff = Math.floor((now - tDate) / (7 * 24 * 60 * 60 * 1000));
+                if(weekDiff >= 0 && weekDiff < 4) {
+                    spendingData[3 - weekDiff] += t.amount;
+                }
+            });
+        } else {
+            labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+            spendingData = [0, 0, 0, 0, 0, 0];
+            var now = new Date();
+            walletData.transactions.filter(function(t) { return t.type === 'expense'; }).forEach(function(t) {
+                var tDate = new Date(t.date);
+                var monthDiff = (now.getFullYear() - tDate.getFullYear()) * 12 + (now.getMonth() - tDate.getMonth());
+                if(monthDiff >= 0 && monthDiff < 6) {
+                    spendingData[5 - monthDiff] += t.amount;
+                }
+            });
+        }
+
+        max = Math.max.apply(null, spendingData.concat([1]));
+        labels.forEach(function(label, i) {
+            var height = (spendingData[i] / max) * 100;
+            var bar = document.createElement('div');
+            bar.className = 'chart-bar';
+            bar.style.height = Math.max(height, 5) + '%';
+            bar.innerHTML = '<div class="chart-bar-value">' + fmtNum(spendingData[i]) + '</div><div class="chart-bar-label">' + label + '</div>';
+            chart.appendChild(bar);
+        });
+
+        var breakdown = document.getElementById('categoryBreakdown');
+        if(!breakdown) return;
+        var cats = Object.entries(walletData.budgets);
+        breakdown.innerHTML = cats.map(function(item) {
+            var key = item[0], b = item[1];
+            var pct = Math.round((b.spent / (b.limit || 1)) * 100);
+            return '<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;"><div style="width:36px;height:36px;border-radius:10px;background:' + b.color + '20;color:' + b.color + ';display:flex;align-items:center;justify-content:center;"><i class="fas fa-' + b.icon + '"></i></div><div style="flex:1;"><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="font-size:13px;font-weight:600;color:var(--text);">' + (b.customName || key.charAt(0).toUpperCase() + key.slice(1)) + '</span><span style="font-size:12px;color:var(--text-muted);">' + pct + '%</span></div><div style="height:6px;background:var(--bg-input);border-radius:3px;overflow:hidden;"><div style="width:' + Math.min(pct,100) + '%;height:100%;background:' + b.color + ';border-radius:3px;transition:width 0.6s;"></div></div></div></div>';
+        }).join('');
+    }
+
+    window.switchChartPeriod = function(period) {
+        currentChartPeriod = period;
+        document.querySelectorAll('.chart-period .period-btn').forEach(function(btn) {
+            btn.classList.remove('active');
+        });
+        var btnId = period === 'week' ? 'btnWeek' : period === 'month' ? 'btnMonth' : 'btnYear';
+        var btn = document.getElementById(btnId);
+        if(btn) btn.classList.add('active');
+        renderAnalytics();
+    };
+
+    function renderTransactions() {
+        var container = document.getElementById('transactionList');
+        if(!container) return;
+        container.innerHTML = '';
+        if(walletData.transactions.length === 0) {
+            container.innerHTML = '<div class="empty-state"><i class="fas fa-receipt"></i><p>No transactions yet. Tap + to add one!</p></div>';
+            return;
+        }
+        var sorted = walletData.transactions.slice().sort(function(a, b) { return b.date - a.date; });
+        var icons = { food: 'utensils', transport: 'car', shopping: 'shopping-bag', entertainment: 'gamepad', health: 'heart-pulse', salary: 'money-bill-wave', other: 'ellipsis' };
+        var colors = { food: '#ef4444', transport: '#06b6d4', shopping: '#8b5cf6', entertainment: '#f59e0b', health: '#10b981', salary: '#6366f1', other: '#64748b' };
+        sorted.forEach(function(t) {
+            var color = colors[t.category] || '#64748b';
+            var rgb = hexToRgbSimple(color);
+            var div = document.createElement('div');
+            div.className = 'transaction-item';
+            div.innerHTML = '<div class="transaction-icon" style="background:rgba(' + rgb + ',0.15);color:' + color + '"><i class="fas fa-' + (icons[t.category] || 'ellipsis') + '"></i></div><div class="transaction-info"><div class="transaction-name">' + (t.description || t.category) + '</div><div class="transaction-date">' + new Date(t.date).toLocaleDateString() + '</div></div><div class="transaction-amount ' + t.type + '">' + (t.type === 'income' ? '+' : '-') + fmtNum(t.amount) + ' ' + walletData.currency + '</div>';
+            container.appendChild(div);
+        });
+    }
+
+    function renderDebts() {
+        var container = document.getElementById('debtList');
+        if(!container) return;
+        container.innerHTML = '';
+        if(walletData.debts.length === 0) {
+            container.innerHTML = '<div class="empty-state"><i class="fas fa-hand-holding-dollar"></i><p>No debts yet. Tap + to add one!</p></div>';
+            return;
+        }
+        walletData.debts.forEach(function(d, index) {
+            var div = document.createElement('div');
+            div.className = 'debt-card';
+            div.innerHTML = '<div class="debt-header"><div class="debt-person"><div class="debt-avatar">' + d.person.charAt(0).toUpperCase() + '</div><div><div class="debt-name">' + d.person + '</div><div class="debt-type">' + (d.type === 'owe' ? 'You owe them' : 'They owe you') + '</div></div></div><div class="debt-amount">' + fmtNum(d.amount) + ' ' + walletData.currency + '</div></div><div class="debt-actions"><button class="debt-btn pay" onclick="payDebt(' + index + ')"><i class="fas fa-check"></i> Mark Paid</button><button class="debt-btn" onclick="deleteDebt(' + index + ')"><i class="fas fa-trash"></i> Delete</button></div>';
+            container.appendChild(div);
+        });
+    }
+
+    function hexToRgbSimple(hex) {
+        var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? parseInt(result[1],16) + ',' + parseInt(result[2],16) + ',' + parseInt(result[3],16) : '100,116,139';
+    }
+
+    function renderAll() {
+        var totalIncome = walletData.transactions.filter(function(t) { return t.type === 'income'; }).reduce(function(s, t) { return s + t.amount; }, 0);
+        var totalExpense = walletData.transactions.filter(function(t) { return t.type === 'expense'; }).reduce(function(s, t) { return s + t.amount; }, 0);
+        var balance = totalIncome - totalExpense + walletData.salary;
+        var totalDebts = walletData.debts.filter(function(d) { return d.type === 'owe'; }).reduce(function(s, d) { return s + d.amount; }, 0);
+        var savings = Math.max(0, balance - totalExpense);
+
+        var balEl = document.getElementById('totalBalance');
+        if(balEl) balEl.textContent = fmtNum(balance);
+        var incEl = document.getElementById('totalIncome');
+        if(incEl) incEl.textContent = fmtNum(totalIncome + walletData.salary);
+        var expEl = document.getElementById('totalExpense');
+        if(expEl) expEl.textContent = fmtNum(totalExpense);
+        var savEl = document.getElementById('totalSavings');
+        if(savEl) savEl.textContent = fmtNum(savings);
+        var debtEl = document.getElementById('totalDebts');
+        if(debtEl) debtEl.textContent = fmtNum(totalDebts);
+        var salEl = document.getElementById('salaryAmount');
+        if(salEl) salEl.textContent = fmtNum(walletData.salary) + ' ' + walletData.currency;
+        var curEl = document.getElementById('currencyLabel');
+        if(curEl) curEl.textContent = walletData.currency;
+
+        var pendingDebts = walletData.debts.filter(function(d) { return d.type === 'owe'; }).length;
+        var debtChangeEl = document.getElementById('debtChange');
+        if(debtChangeEl) {
+            debtChangeEl.textContent = pendingDebts + ' pending';
+            debtChangeEl.className = pendingDebts > 0 ? 'stat-change negative' : 'stat-change positive';
+        }
+
+        renderBudgets();
+        renderTransactions();
+        renderDebts();
+        renderAnalytics();
+    }
+
+    // ===== TRANSACTION & DEBT ACTIONS =====
+    window.addTransaction = function() {
+        var amount = parseFloat(document.getElementById('transAmount').value);
+        var type = document.getElementById('transType').value;
+        var category = document.getElementById('transCategory').value;
+        var desc = document.getElementById('transDesc').value;
+        if(!amount || amount <= 0) { showToastMsg('Enter valid amount', 'error'); return; }
+        walletData.transactions.push({ amount: amount, type: type, category: category, description: desc, date: Date.now() });
+        if(type === 'expense' && walletData.budgets[category]) walletData.budgets[category].spent += amount;
+        saveLocalData();
+        renderAll();
+        closeModal('transactionModal');
+        addNotification(type === 'income' ? 'Money Added!' : 'Transaction Added', type === 'income' ? '+' + fmtNum(amount) + ' ' + walletData.currency + ' added' : '-' + fmtNum(amount) + ' ' + walletData.currency + ' spent on ' + category, type === 'income' ? 'success' : 'info');
+        if(type === 'expense' && walletData.budgets[category]) {
+            var budget = walletData.budgets[category];
+            if(budget.spent > budget.limit) addNotification('Budget Alert!', 'You\'ve exceeded your ' + category + ' budget!', 'error');
+            else if(budget.spent > budget.limit * 0.8) addNotification('Budget Warning', 'You\'ve used 80% of your ' + category + ' budget', 'warning');
+        }
+        showToastMsg('Transaction added!');
+        document.getElementById('transAmount').value = '';
+        document.getElementById('transDesc').value = '';
+    };
+
+    window.addSalary = function() {
+        var amount = parseFloat(document.getElementById('salaryInput').value);
+        if(!amount || amount <= 0) { showToastMsg('Enter valid salary', 'error'); return; }
+        walletData.salary = amount;
+        saveLocalData();
+        renderAll();
+        closeModal('salaryModal');
+        addNotification('Salary Added!', 'Monthly salary set to ' + fmtNum(amount) + ' ' + walletData.currency, 'success');
+        showToastMsg('Salary saved!');
+        document.getElementById('salaryInput').value = '';
+    };
+
+    window.addDebt = function() {
+        var person = document.getElementById('debtPerson').value.trim();
+        var amount = parseFloat(document.getElementById('debtAmount').value);
+        var type = document.getElementById('debtType').value;
+        if(!person || !amount || amount <= 0) { showToastMsg('Fill all fields', 'error'); return; }
+        walletData.debts.push({ person: person, amount: amount, type: type });
+        saveLocalData();
+        renderAll();
+        closeModal('debtModal');
+        addNotification(type === 'owe' ? 'Debt Added' : 'Money Owed to You', type === 'owe' ? 'You owe ' + fmtNum(amount) + ' to ' + person : person + ' owes you ' + fmtNum(amount), 'info');
+        showToastMsg('Debt added!');
+        document.getElementById('debtPerson').value = '';
+        document.getElementById('debtAmount').value = '';
+    };
+
+    window.payDebt = function(index) {
+        var debt = walletData.debts[index];
+        walletData.debts.splice(index, 1);
+        saveLocalData();
+        renderAll();
+        addNotification('Debt Paid!', 'Debt with ' + debt.person + ' marked as paid', 'success');
+        showToastMsg('Debt marked paid!');
+    };
+
+    window.deleteDebt = function(index) {
+        walletData.debts.splice(index, 1);
+        saveLocalData();
+        renderAll();
+        showToastMsg('Debt deleted!');
+    };
+
+    window.saveCurrency = function() {
+        var currency = document.getElementById('currencySelect').value;
+        walletData.currency = currency;
+        saveLocalData();
+        renderAll();
+        closeModal('currencyModal');
+        var names = { IQD: 'Iraqi Dinar', USD: 'US Dollar', EUR: 'Euro', GBP: 'British Pound', TRY: 'Turkish Lira' };
+        var curEl = document.getElementById('currentCurrency');
+        if(curEl) curEl.textContent = currency + ' (' + names[currency] + ')';
+        addNotification('Currency Changed', 'Currency set to ' + names[currency], 'success');
+        showToastMsg('Currency updated!');
+    };
+
+    window.confirmReset = function() { openModal('resetModal'); };
+
+    window.resetAllData = function() {
+        walletData = {
+            currency: 'IQD', salary: 0, transactions: [], debts: [],
+            budgets: {
+                food: { limit: 50000, spent: 0, icon: 'utensils', color: '#ef4444' },
+                transport: { limit: 30000, spent: 0, icon: 'car', color: '#06b6d4' },
+                shopping: { limit: 40000, spent: 0, icon: 'shopping-bag', color: '#8b5cf6' },
+                entertainment: { limit: 25000, spent: 0, icon: 'gamepad', color: '#f59e0b' },
+                health: { limit: 20000, spent: 0, icon: 'heart-pulse', color: '#10b981' },
+                other: { limit: 15000, spent: 0, icon: 'ellipsis', color: '#64748b' }
+            }
+        };
+        localStorage.removeItem('myWalletData');
+        saveLocalData();
+        renderAll();
+        closeModal('resetModal');
+        addNotification('Data Reset', 'All your data has been reset', 'error');
+        showToastMsg('All data reset!');
+    };
+
+    window.exportData = function() {
+        var blob = new Blob([JSON.stringify(walletData, null, 2)], { type: 'application/json' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'mywallet-data.json';
+        a.click();
+        URL.revokeObjectURL(url);
+        addNotification('Data Exported', 'Your data has been exported successfully', 'success');
+        showToastMsg('Data exported!');
+    };
+
+    window.importData = function() { document.getElementById('importFile').click(); };
+
+    window.handleImport = function(event) {
+        var file = event.target.files[0];
+        if(!file) return;
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                var imported = JSON.parse(e.target.result);
+                if(imported.budgets && imported.transactions !== undefined) {
+                    walletData = imported;
+                    saveLocalData();
+                    renderAll();
+                    showToastMsg('Data imported!');
+                } else { showToastMsg('Invalid file', 'error'); }
+            } catch(err) { showToastMsg('Error reading file', 'error'); }
+        };
+        reader.readAsText(file);
+        event.target.value = '';
+    };
+
+    window.saveProfile = function() {
+        var name = document.getElementById('editName').value.trim();
+        if(!name) { showToastMsg('Please enter a name', 'error'); return; }
+        var demoUserStr = localStorage.getItem('myWalletDemoUser');
+        if(demoUserStr) {
+            var user = JSON.parse(demoUserStr);
+            user.displayName = name;
+            localStorage.setItem('myWalletDemoUser', JSON.stringify(user));
+            var nameEl = document.getElementById('profileName');
+            if(nameEl) nameEl.textContent = name;
+            var avatarEl = document.getElementById('profileAvatar');
+            if(avatarEl) avatarEl.innerHTML = '<span style="font-size:32px;font-weight:700;">' + name.charAt(0).toUpperCase() + '</span>';
+        }
+        closeModal('editProfileModal');
+        showToastMsg('Profile updated!');
+    };
+
+    window.changePassword = function() {
+        var current = document.getElementById('currentPassword').value;
+        var newPass = document.getElementById('newPassword').value;
+        var confirm = document.getElementById('confirmPassword').value;
+        if(!current || !newPass || !confirm) { showAuthErr('password', 'Fill all fields'); return; }
+        if(newPass.length < 6) { showAuthErr('password', 'Min 6 characters'); return; }
+        if(newPass !== confirm) { showAuthErr('password', 'Passwords do not match'); return; }
+        showToastMsg('Password updated!');
+        closeModal('changePasswordModal');
+        document.getElementById('currentPassword').value = '';
+        document.getElementById('newPassword').value = '';
+        document.getElementById('confirmPassword').value = '';
+    };
+
+    window.sendContact = function() {
+        var name = document.getElementById('contactName').value.trim();
+        var email = document.getElementById('contactEmail').value.trim();
+        var subject = document.getElementById('contactSubject').value;
+        var message = document.getElementById('contactMessage').value.trim();
+        if(!name || !email || !message) { showToastMsg('Please fill all fields', 'error'); return; }
+        var mailtoLink = 'mailto:maroduhoki6@gmail.com?subject=MyWallet Support - ' + encodeURIComponent(subject) + '&body=' + encodeURIComponent('Name: ' + name + '\nEmail: ' + email + '\n\nMessage:\n' + message);
+        window.location.href = mailtoLink;
+        showToastMsg('Opening email client...');
+        document.getElementById('contactName').value = '';
+        document.getElementById('contactEmail').value = '';
+        document.getElementById('contactMessage').value = '';
+    };
 </script>
 
     <script>
@@ -751,7 +1370,7 @@
                 <div class="logo-text">MyWallet</div>
             </div>
             <div class="header-actions">
-                <button class="header-btn" onclick="showNotifications()" style="position:relative;">
+                <button class="header-btn" onclick="showPage('notifications')" style="position:relative;">
                     <i class="fas fa-bell"></i>
                     <span class="badge" id="notifBadge" style="display:none;">0</span>
                 </button>
@@ -872,9 +1491,9 @@
                     <div class="chart-header">
                         <div class="chart-title">Spending Overview</div>
                         <div class="chart-period">
-                            <button class="period-btn active">Week</button>
-                            <button class="period-btn">Month</button>
-                            <button class="period-btn">Year</button>
+                            <button class="period-btn active" id="btnWeek" onclick="switchChartPeriod('week')">Week</button>
+                            <button class="period-btn" id="btnMonth" onclick="switchChartPeriod('month')">Month</button>
+                            <button class="period-btn" id="btnYear" onclick="switchChartPeriod('year')">Year</button>
                         </div>
                     </div>
                     <div class="mini-chart" id="spendingChart"></div>
@@ -1325,7 +1944,22 @@
             </div>
         </div>
 
-        <!-- Bottom Navigation -->
+        
+        <!-- NOTIFICATIONS PAGE -->
+        <div class="page" id="pageNotifications">
+            <div class="section-title">
+                <h2><i class="fas fa-arrow-left" onclick="showPage('home')" style="cursor:pointer;margin-right:8px;"></i> Notifications</h2>
+                <span class="see-all" onclick="clearAllNotifications()" style="color:var(--danger);"><i class="fas fa-trash"></i> Clear All</span>
+            </div>
+            <div id="notificationsList" style="padding:0 20px;">
+                <div class="empty-state" id="notifEmpty">
+                    <i class="fas fa-bell-slash"></i>
+                    <p>No notifications yet</p>
+                </div>
+            </div>
+        </div>
+
+<!-- Bottom Navigation -->
         <div class="bottom-nav">
             <div class="nav-item active" onclick="showPage('home')">
                 <i class="fas fa-home"></i>
@@ -1465,25 +2099,37 @@
     <div class="modal-overlay" id="budgetModal">
         <div class="modal">
             <div class="modal-header">
-                <div class="modal-title">Set Budget</div>
+                <div class="modal-title" id="budgetModalTitle">Set Budget</div>
                 <button class="modal-close" onclick="closeModal('budgetModal')"><i class="fas fa-times"></i></button>
             </div>
             <div class="form-group">
                 <label class="form-label">Category</label>
-                <select class="form-select" id="budgetCategorySelect">
+                <select class="form-select" id="budgetCategorySelect" onchange="onBudgetCategoryChange()">
                     <option value="food">Food & Dining</option>
                     <option value="transport">Transport</option>
                     <option value="shopping">Shopping</option>
                     <option value="entertainment">Entertainment</option>
                     <option value="health">Health</option>
                     <option value="other">Other</option>
+                    <option value="custom">+ Create Custom Category</option>
                 </select>
             </div>
-            <div class="form-group">
-                <label class="form-label">Weekly Limit</label>
-                <input type="number" class="form-input" id="budgetLimit" placeholder="Enter weekly limit">
+            <div class="form-group" id="customCategoryGroup" style="display:none;">
+                <label class="form-label">Custom Category Name</label>
+                <input type="text" class="form-input" id="customCategoryName" placeholder="e.g. Education, Gym, Rent">
             </div>
-            <button class="btn-primary" onclick="saveBudget()">Set Budget</button>
+            <div class="form-group">
+                <label class="form-label">Budget Limit</label>
+                <input type="number" class="form-input" id="budgetLimit" placeholder="Enter amount">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Period</label>
+                <select class="form-select" id="budgetPeriod">
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                </select>
+            </div>
+            <button class="btn-primary" onclick="saveBudget()">Save Budget</button>
         </div>
     </div>
 
@@ -2501,6 +3147,3 @@ initAuth();
     </script>
 </body>
 </html>
-      .budget-amount { text-align: right; }
-        .budget-spent { font-size: 16px; font-weight: 700; color: var(--text); }
-        .budget-remaining { fon
