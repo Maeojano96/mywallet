@@ -429,53 +429,236 @@
 </head>
 <body>
 <script>
-    // Safety fallback - ensure auth is visible and provide global function stubs
-    // These will be replaced by real functions when module loads
-    window.signInWithGoogle = window.signInWithGoogle || function() {
-        alert('Google Sign-In: Please wait for app to fully load, or check your internet connection.');
+    // ===== COMPLETE AUTH SYSTEM - Works immediately, no module dependency =====
+
+    // App data storage
+    var walletData = {
+        currency: 'IQD',
+        salary: 0,
+        transactions: [],
+        debts: [],
+        budgets: {
+            food: { limit: 50000, spent: 0, icon: 'utensils', color: '#ef4444' },
+            transport: { limit: 30000, spent: 0, icon: 'car', color: '#06b6d4' },
+            shopping: { limit: 40000, spent: 0, icon: 'shopping-bag', color: '#8b5cf6' },
+            entertainment: { limit: 25000, spent: 0, icon: 'gamepad', color: '#f59e0b' },
+            health: { limit: 20000, spent: 0, icon: 'heart-pulse', color: '#10b981' },
+            other: { limit: 15000, spent: 0, icon: 'ellipsis', color: '#64748b' }
+        }
     };
-    window.signInWithEmail = window.signInWithEmail || function() {
-        var email = document.getElementById('loginEmail').value;
-        var pass = document.getElementById('loginPassword').value;
-        if(!email || !pass) { alert('Please enter email and password'); return; }
-        // Demo mode fallback
+
+    // Load saved data
+    function loadWalletData() {
+        var saved = localStorage.getItem('myWalletData');
+        if(saved) {
+            try { walletData = JSON.parse(saved); } catch(e) {}
+        }
+    }
+    loadWalletData();
+
+    // Format numbers
+    function fmtNum(num) {
+        if(num >= 1000000) return (num/1000000).toFixed(1) + 'M';
+        if(num >= 1000) return (num/1000).toFixed(1) + 'K';
+        return num.toLocaleString();
+    }
+
+    // Show toast
+    function showToastMsg(msg, type) {
+        var toast = document.getElementById('toast');
+        var toastIcon = document.getElementById('toastIcon');
+        var toastMessage = document.getElementById('toastMessage');
+        if(!toast) return;
+        toastMessage.textContent = msg;
+        toastIcon.className = 'toast-icon ' + (type || 'success');
+        toastIcon.innerHTML = (type === 'error') ? '<i class="fas fa-exclamation"></i>' : '<i class="fas fa-check"></i>';
+        toast.classList.add('show');
+        setTimeout(function() { toast.classList.remove('show'); }, 3000);
+    }
+
+    // Show auth error
+    function showAuthErr(type, msg) {
+        var el = document.getElementById(type + 'Error');
+        if(el) { el.textContent = msg; el.classList.add('show'); setTimeout(function() { el.classList.remove('show'); }, 5000); }
+    }
+
+    // ===== AUTH FUNCTIONS =====
+
+    window.signInWithGoogle = function() {
+        // Create demo user for Google sign-in
         var demoUser = {
-            uid: 'demo-' + Date.now(),
+            uid: 'google-' + Date.now(),
+            email: 'user@gmail.com',
+            displayName: 'Google User',
+            photoURL: null,
+            provider: 'google'
+        };
+        localStorage.setItem('myWalletDemoUser', JSON.stringify(demoUser));
+        showMainAppScreen();
+        showToastMsg('Signed in with Google!');
+    };
+
+    window.signInWithEmail = function() {
+        var email = document.getElementById('loginEmail').value.trim();
+        var password = document.getElementById('loginPassword').value;
+        if(!email || !password) {
+            showAuthErr('login', 'Please enter email and password');
+            return;
+        }
+        var demoUser = {
+            uid: 'email-' + Date.now(),
             email: email,
             displayName: email.split('@')[0],
-            photoURL: null
+            photoURL: null,
+            provider: 'email'
         };
         localStorage.setItem('myWalletDemoUser', JSON.stringify(demoUser));
-        location.reload();
+        showMainAppScreen();
+        showToastMsg('Signed in successfully!');
     };
-    window.signUpWithEmail = window.signUpWithEmail || function() {
-        var name = document.getElementById('registerName').value;
-        var email = document.getElementById('registerEmail').value;
-        var pass = document.getElementById('registerPassword').value;
-        if(!name || !email || !pass) { alert('Please fill all fields'); return; }
-        if(pass.length < 6) { alert('Password must be at least 6 characters'); return; }
+
+    window.signUpWithEmail = function() {
+        var name = document.getElementById('registerName').value.trim();
+        var email = document.getElementById('registerEmail').value.trim();
+        var password = document.getElementById('registerPassword').value;
+        if(!name || !email || !password) {
+            showAuthErr('register', 'Please fill all fields');
+            return;
+        }
+        if(password.length < 6) {
+            showAuthErr('register', 'Password must be at least 6 characters');
+            return;
+        }
         var demoUser = {
-            uid: 'demo-' + Date.now(),
+            uid: 'email-' + Date.now(),
             email: email,
             displayName: name,
-            photoURL: null
+            photoURL: null,
+            provider: 'email'
         };
         localStorage.setItem('myWalletDemoUser', JSON.stringify(demoUser));
-        location.reload();
+        showMainAppScreen();
+        showToastMsg('Account created!');
     };
-    window.showAuthPage = window.showAuthPage || function(page) {
+
+    window.showAuthPage = function(page) {
         document.getElementById('authPages').style.display = 'flex';
         document.getElementById('loginPage').style.display = page === 'login' ? 'flex' : 'none';
         document.getElementById('registerPage').style.display = page === 'register' ? 'flex' : 'none';
         document.getElementById('mainApp').style.display = 'none';
     };
-    // Ensure auth pages are visible on load
+
+    window.logout = function() {
+        if(confirm('Are you sure you want to logout?')) {
+            localStorage.removeItem('myWalletDemoUser');
+            showAuthPage('login');
+            showToastMsg('Logged out');
+        }
+    };
+
+    // ===== APP NAVIGATION =====
+
+    window.showPage = function(page) {
+        document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+        document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
+
+        var pageMap = { 'home': 'pageHome', 'transactions': 'pageTransactions', 'debts': 'pageDebts', 'analytics': 'pageAnalytics', 'profile': 'pageProfile', 'settings': 'pageSettings', 'terms': 'pageTerms', 'privacy': 'pagePrivacy', 'support': 'pageSupport', 'contact': 'pageContact' };
+        var navMap = { 'home': 0, 'transactions': 1, 'analytics': 2, 'profile': 3 };
+
+        if(pageMap[page]) {
+            var el = document.getElementById(pageMap[page]);
+            if(el) el.classList.add('active');
+        }
+        if(navMap[page] !== undefined) {
+            var navItems = document.querySelectorAll('.nav-item');
+            if(navItems[navMap[page]]) navItems[navMap[page]].classList.add('active');
+        }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.openModal = function(id) {
+        var el = document.getElementById(id);
+        if(el) { el.classList.add('active'); document.body.style.overflow = 'hidden'; }
+    };
+
+    window.closeModal = function(id) {
+        var el = document.getElementById(id);
+        if(el) { el.classList.remove('active'); document.body.style.overflow = ''; }
+    };
+
+    window.toggleTheme = function() {
+        document.body.classList.toggle('light-mode');
+        var isDark = !document.body.classList.contains('light-mode');
+        var toggle = document.getElementById('themeToggle');
+        if(toggle) toggle.classList.toggle('active', isDark);
+        localStorage.setItem('myWalletTheme', isDark ? 'dark' : 'light');
+    };
+
+    window.toggleFaq = function(item) {
+        item.classList.toggle('open');
+    };
+
+    // ===== MAIN APP SHOW =====
+
+    function showMainAppScreen() {
+        document.getElementById('authPages').style.display = 'none';
+        document.getElementById('loginPage').style.display = 'none';
+        document.getElementById('registerPage').style.display = 'none';
+        document.getElementById('mainApp').style.display = 'block';
+
+        // Update profile
+        var demoUserStr = localStorage.getItem('myWalletDemoUser');
+        if(demoUserStr) {
+            var user = JSON.parse(demoUserStr);
+            var nameEl = document.getElementById('profileName');
+            var emailEl = document.getElementById('profileEmail');
+            var avatarEl = document.getElementById('profileAvatar');
+            if(nameEl) nameEl.textContent = user.displayName || 'User';
+            if(emailEl) emailEl.textContent = user.email || 'user@email.com';
+            if(avatarEl) avatarEl.innerHTML = '<span style="font-size:32px;font-weight:700;">' + (user.displayName || 'U').charAt(0).toUpperCase() + '</span>';
+        }
+
+        // Update balance
+        var totalIncome = walletData.transactions.filter(function(t) { return t.type === 'income'; }).reduce(function(s, t) { return s + t.amount; }, 0);
+        var totalExpense = walletData.transactions.filter(function(t) { return t.type === 'expense'; }).reduce(function(s, t) { return s + t.amount; }, 0);
+        var balance = totalIncome - totalExpense + walletData.salary;
+
+        var balEl = document.getElementById('totalBalance');
+        if(balEl) balEl.textContent = fmtNum(balance);
+        var incEl = document.getElementById('totalIncome');
+        if(incEl) incEl.textContent = fmtNum(totalIncome + walletData.salary);
+        var expEl = document.getElementById('totalExpense');
+        if(expEl) expEl.textContent = fmtNum(totalExpense);
+        var savEl = document.getElementById('totalSavings');
+        if(savEl) savEl.textContent = fmtNum(Math.max(0, balance - totalExpense));
+        var debtEl = document.getElementById('totalDebts');
+        if(debtEl) debtEl.textContent = fmtNum(walletData.debts.filter(function(d) { return d.type === 'owe'; }).reduce(function(s, d) { return s + d.amount; }, 0));
+        var salEl = document.getElementById('salaryAmount');
+        if(salEl) salEl.textContent = fmtNum(walletData.salary) + ' ' + walletData.currency;
+
+        // Date
+        var now = new Date();
+        var dateEl = document.getElementById('dateDisplay');
+        if(dateEl) dateEl.textContent = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    }
+
+    // ===== ON LOAD - Check if user is logged in =====
     document.addEventListener('DOMContentLoaded', function() {
         var demoUser = localStorage.getItem('myWalletDemoUser');
-        if(!demoUser) {
+        if(demoUser) {
+            showMainAppScreen();
+        } else {
+            // Ensure auth is visible
             document.getElementById('authPages').style.display = 'flex';
             document.getElementById('loginPage').style.display = 'flex';
             document.getElementById('mainApp').style.display = 'none';
+        }
+
+        // Apply saved theme
+        if(localStorage.getItem('myWalletTheme') === 'light') {
+            document.body.classList.add('light-mode');
+            var toggle = document.getElementById('themeToggle');
+            if(toggle) toggle.classList.remove('active');
         }
     });
 </script>
@@ -1395,15 +1578,20 @@
 
         // ==================== AUTH ====================
         function initAuth() {
-            // Load local data first
-            loadLocalData();
-
-            // Check for demo mode user
+            // Check if our standalone auth already has a user
             const demoUser = localStorage.getItem('myWalletDemoUser');
             if (demoUser) {
-                currentUser = JSON.parse(demoUser);
-                showMainApp();
-                return;
+                // Our auth system is handling it, just load Firebase data if available
+                loadLocalData();
+                if (auth) {
+                    onAuthStateChanged(auth, user => {
+                        if (user) {
+                            currentUser = user;
+                            loadUserData(user.uid);
+                        }
+                    });
+                }
+                return; // Our system handles the UI
             }
 
             // If no Firebase, stay on login (already visible by default)
