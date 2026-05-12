@@ -428,16 +428,20 @@
     </style>
 </head>
 <body>
+    <script>
+        // Show loading immediately before anything else loads
+        document.body.style.overflow = 'hidden';
+    </script>
     <div class="bg-mesh"></div>
 
     <!-- LOADING -->
-    <div class="loading-overlay active" id="loadingOverlay">
+    <div class="loading-overlay" id="loadingOverlay">
         <div class="loading-spinner"></div>
         <div class="loading-text">Loading...</div>
     </div>
 
     <!-- AUTH PAGES -->
-    <div id="authPages" style="display:none;">
+    <div id="authPages">
         <!-- LOGIN -->
         <div class="auth-page" id="loginPage">
             <div class="auth-logo">
@@ -1339,7 +1343,7 @@
 
         // ==================== AUTH ====================
         function initAuth() {
-            // Always show loading first to prevent any flash of login page
+            // Show loading first
             showLoading(true);
 
             // Load local data first (for offline mode)
@@ -1354,22 +1358,31 @@
                 return;
             }
 
+            // If Firebase auth is not available, go to login immediately
             if (!auth) {
-                showAuthPage('login');
                 showLoading(false);
+                showAuthPage('login');
                 return;
             }
 
-            // Firebase auth state check - Firebase persists login across sessions
+            // Set a timeout in case Firebase auth hangs
+            let authTimeout = setTimeout(() => {
+                console.log('Auth timeout - showing login');
+                showLoading(false);
+                showAuthPage('login');
+            }, 5000);
+
+            // Firebase auth state check
             onAuthStateChanged(auth, user => {
+                clearTimeout(authTimeout);
                 currentUser = user;
+                showLoading(false);
                 if (user) {
                     loadUserData(user.uid);
                     showMainApp();
                 } else {
                     showAuthPage('login');
                 }
-                showLoading(false);
             });
         }
 
@@ -2180,7 +2193,14 @@ ${message}`
         }
 
         function showLoading(show) {
-            document.getElementById('loadingOverlay').classList.toggle('active', show);
+            const overlay = document.getElementById('loadingOverlay');
+            if (show) {
+                overlay.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            } else {
+                overlay.classList.remove('active');
+                document.body.style.overflow = '';
+            }
         }
 
         function showToast(message, type = 'success') {
