@@ -847,12 +847,40 @@
     var originalShowPage = window.showPage;
     window.showPage = function(page) {
         originalShowPage(page);
+
+        // Update header icon based on current page
+        var notifIcon = document.getElementById('headerNotifIcon');
+        var notifBadge = document.getElementById('notifBadge');
+        if(notifIcon) {
+            if(page === 'notifications') {
+                notifIcon.className = 'fas fa-arrow-left';
+                if(notifBadge) notifBadge.style.display = 'none';
+            } else {
+                notifIcon.className = 'fas fa-bell';
+                updateNotifBadgeCount();
+            }
+        }
+
         if(page === 'notifications') {
             renderNotifications();
             // Mark all as read when viewing
             notifications.forEach(function(n) { n.read = true; });
             saveNotifications();
         }
+    };
+
+    window.toggleNotifBtn = function() {
+        var notifIcon = document.getElementById('headerNotifIcon');
+        if(notifIcon && notifIcon.className === 'fas fa-arrow-left') {
+            goBackFromNotifications();
+        } else {
+            showPage('notifications');
+        }
+    };
+
+    window.goBackFromNotifications = function() {
+        // Go back to previous page or home
+        showPage('home');
     };
 
 
@@ -1370,8 +1398,8 @@
                 <div class="logo-text">MyWallet</div>
             </div>
             <div class="header-actions">
-                <button class="header-btn" onclick="showPage('notifications')" style="position:relative;">
-                    <i class="fas fa-bell"></i>
+                <button class="header-btn" id="headerNotifBtn" onclick="toggleNotifBtn()" style="position:relative;">
+                    <i class="fas fa-bell" id="headerNotifIcon"></i>
                     <span class="badge" id="notifBadge" style="display:none;">0</span>
                 </button>
                 <button class="header-btn" onclick="showPage('profile')">
@@ -1948,7 +1976,7 @@
         <!-- NOTIFICATIONS PAGE -->
         <div class="page" id="pageNotifications">
             <div class="section-title">
-                <h2><i class="fas fa-arrow-left" onclick="showPage('home')" style="cursor:pointer;margin-right:8px;"></i> Notifications</h2>
+                <h2><i class="fas fa-arrow-left" onclick="goBackFromNotifications()" style="cursor:pointer;margin-right:8px;"></i> Notifications</h2>
                 <span class="see-all" onclick="clearAllNotifications()" style="color:var(--danger);"><i class="fas fa-trash"></i> Clear All</span>
             </div>
             <div id="notificationsList" style="padding:0 20px;">
