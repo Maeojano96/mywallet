@@ -1595,39 +1595,7 @@
         }
     };
 
-    // Override showPage to render notifications when on that page
-    var originalShowPage = window.showPage;
-    window.showPage = function(page) {
-        originalShowPage(page);
 
-        // Update header icon based on current page
-        var notifIcon = document.getElementById('headerNotifIcon');
-        var notifBadge = document.getElementById('notifBadge');
-        if(notifIcon) {
-            if(page === 'notifications') {
-                notifIcon.className = 'fas fa-arrow-left';
-                if(notifBadge) notifBadge.style.display = 'none';
-            } else {
-                notifIcon.className = 'fas fa-bell';
-                if(notifBadge) {
-                    var unread = notifications.filter(function(n) { return !n.read; }).length;
-                    notifBadge.textContent = unread;
-                    notifBadge.style.display = unread > 0 ? 'flex' : 'none';
-                }
-            }
-        }
-
-        if(page === 'notifications') {
-            renderNotifications();
-            // Mark all as read when viewing
-            notifications.forEach(function(n) { n.read = true; });
-            saveNotifications();
-        }
-
-        if(page === 'budgets') {
-            renderAllBudgets();
-        }
-    };
 
     window.toggleNotifBtn = function() {
         var notifIcon = document.getElementById('headerNotifIcon');
