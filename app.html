@@ -857,7 +857,11 @@
                 if(notifBadge) notifBadge.style.display = 'none';
             } else {
                 notifIcon.className = 'fas fa-bell';
-                updateNotifBadgeCount();
+                if(notifBadge) {
+                    var unread = notifications.filter(function(n) { return !n.read; }).length;
+                    notifBadge.textContent = unread;
+                    notifBadge.style.display = unread > 0 ? 'flex' : 'none';
+                }
             }
         }
 
@@ -1979,10 +1983,13 @@
                 <h2><i class="fas fa-arrow-left" onclick="goBackFromNotifications()" style="cursor:pointer;margin-right:8px;"></i> Notifications</h2>
                 <span class="see-all" onclick="clearAllNotifications()" style="color:var(--danger);"><i class="fas fa-trash"></i> Clear All</span>
             </div>
-            <div id="notificationsList" style="padding:0 20px;">
-                <div class="empty-state" id="notifEmpty">
-                    <i class="fas fa-bell-slash"></i>
-                    <p>No notifications yet</p>
+            <div id="notificationsList" style="padding:0 20px; min-height:60vh; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+                <div class="empty-state" id="notifEmpty" style="text-align:center; padding:60px 20px;">
+                    <div style="width:80px; height:80px; border-radius:50%; background:var(--bg-input); display:flex; align-items:center; justify-content:center; margin:0 auto 20px;">
+                        <i class="fas fa-bell-slash" style="font-size:32px; color:var(--text-muted);"></i>
+                    </div>
+                    <p style="font-size:18px; font-weight:600; color:var(--text); margin-bottom:8px;">No Notifications</p>
+                    <p style="font-size:14px; color:var(--text-muted); max-width:280px; line-height:1.6;">You're all caught up! New notifications about transactions, budgets, and debts will appear here.</p>
                 </div>
             </div>
         </div>
@@ -3138,6 +3145,7 @@ ${message}`
         // ==================== START ====================
         
         // Expose functions to global scope for HTML onclick handlers
+        // Note: window.showPage is handled by standalone script for notification icon toggle
         window.signInWithGoogle = signInWithGoogle;
         window.signInWithEmail = signInWithEmail;
         window.signUpWithEmail = signUpWithEmail;
@@ -3145,7 +3153,7 @@ ${message}`
         window.saveProfile = saveProfile;
         window.changePassword = changePassword;
         window.showAuthPage = showAuthPage;
-        window.showPage = showPage;
+        // window.showPage = showPage; // REMOVED - standalone script handles this
         window.openModal = openModal;
         window.closeModal = closeModal;
         window.toggleTheme = toggleTheme;
