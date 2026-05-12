@@ -361,7 +361,9 @@
 
         /* LOADING */
         .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 500; display: none; align-items: center; justify-content: center; flex-direction: column; gap: 20px; }
-        .loading-overlay.active { display: flex; }
+        .loading-overlay.active { display: flex !important; }
+        #authPages { display: none; }
+        #authPages.active { display: flex; }
         .loading-spinner { width: 48px; height: 48px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .loading-text { font-size: 14px; color: var(--text-muted); }
@@ -429,13 +431,13 @@
     <div class="bg-mesh"></div>
 
     <!-- LOADING -->
-    <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-overlay active" id="loadingOverlay">
         <div class="loading-spinner"></div>
         <div class="loading-text">Loading...</div>
     </div>
 
     <!-- AUTH PAGES -->
-    <div id="authPages">
+    <div id="authPages" style="display:none;">
         <!-- LOGIN -->
         <div class="auth-page" id="loginPage">
             <div class="auth-logo">
@@ -512,7 +514,7 @@
             <div class="header-actions">
                 <button class="header-btn" onclick="showNotifications()" style="position:relative;">
                     <i class="fas fa-bell"></i>
-                    <span class="badge" id="notifBadge">3</span>
+                    <span class="badge" id="notifBadge" style="display:none;">0</span>
                 </button>
                 <button class="header-btn" onclick="showPage('profile')">
                     <i class="fas fa-user"></i>
@@ -742,6 +744,13 @@
                 <h2>Legal & Support</h2>
             </div>
             <div class="settings-section">
+                <div class="settings-item" onclick="window.open('https://mywallet-personal.netlify.app/', '_blank')">
+                    <div class="settings-left">
+                        <div class="settings-icon legal" style="background:rgba(99,102,241,0.15);color:var(--primary);"><i class="fas fa-globe"></i></div>
+                        <div><div class="settings-label">Website</div><div class="settings-desc">Visit our official website</div></div>
+                    </div>
+                    <i class="fas fa-external-link-alt" style="color:var(--text-muted);font-size:12px;"></i>
+                </div>
                 <div class="settings-item" onclick="window.open('https://mywallet-personal.netlify.app/terms-of-service', '_blank')">
                     <div class="settings-left">
                         <div class="settings-icon legal"><i class="fas fa-file-contract"></i></div>
@@ -783,7 +792,7 @@
                     <div class="footer-brand-name">MyWallet</div>
                 </div>
                 <div class="footer-links">
-                    <a href="https://mywallet-personal.netlify.app/">Home</a>
+                    <a href="https://mywallet-personal.netlify.app/">Website</a>
                     <a href="https://mywallet-personal.netlify.app/privacy-policy">Privacy Policy</a>
                     <a href="https://mywallet-personal.netlify.app/terms-of-service">Terms of Service</a>
                     <a href="https://mywallet-personal.netlify.app/support">Support</a>
@@ -1330,32 +1339,37 @@
 
         // ==================== AUTH ====================
         function initAuth() {
-            // Show loading immediately to prevent login flash
+            // Always show loading first to prevent any flash of login page
             showLoading(true);
 
             // Load local data first (for offline mode)
             loadLocalData();
 
-            if (!auth) {
+            // Check for demo mode user first (fastest check)
+            const demoUser = localStorage.getItem('myWalletDemoUser');
+            if (demoUser) {
+                currentUser = JSON.parse(demoUser);
+                showMainApp();
                 showLoading(false);
-                const demoUser = localStorage.getItem('myWalletDemoUser');
-                if (demoUser) {
-                    currentUser = JSON.parse(demoUser);
-                    showMainApp();
-                } else {
-                    showAuthPage('login');
-                }
                 return;
             }
+
+            if (!auth) {
+                showAuthPage('login');
+                showLoading(false);
+                return;
+            }
+
+            // Firebase auth state check - Firebase persists login across sessions
             onAuthStateChanged(auth, user => {
                 currentUser = user;
-                showLoading(false);
                 if (user) {
                     loadUserData(user.uid);
                     showMainApp();
                 } else {
                     showAuthPage('login');
                 }
+                showLoading(false);
             });
         }
 
@@ -1364,6 +1378,8 @@
             document.getElementById('registerPage').style.display = page === 'register' ? 'flex' : 'none';
             document.getElementById('authPages').style.display = 'flex';
             document.getElementById('mainApp').style.display = 'none';
+            // Reset loading state
+            showLoading(false);
         }
 
         function showMainApp() {
@@ -1371,6 +1387,7 @@
             document.getElementById('mainApp').style.display = 'block';
             updateProfileUI();
             init();
+            renderAll();
         }
 
         function signInWithGoogle() {
@@ -1607,6 +1624,62 @@
                 .catch(err => console.log('Error saving:', err));
         }
 
+                // ==================== NOTIFICATIONS ====================
+        let notifications = [];
+
+        function loadNotifications() {
+            const saved = localStorage.getItem('myWalletNotifications');
+            if (saved) {
+                try { notifications = JSON.parse(saved); } catch(e) {}
+            }
+            updateNotifBadge();
+        }
+
+        function saveNotifications() {
+            localStorage.setItem('myWalletNotifications', JSON.stringify(notifications.slice(0, 50)));
+            updateNotifBadge();
+        }
+
+        function addNotification(title, message, type = 'info') {
+            const notif = {
+                id: Date.now(),
+                title,
+                message,
+                type,
+                read: false,
+                time: Date.now()
+            };
+            notifications.unshift(notif);
+            saveNotifications();
+            updateNotifBadge();
+        }
+
+        function updateNotifBadge() {
+            const badge = document.getElementById('notifBadge');
+            const unread = notifications.filter(n => !n.read).length;
+            if (badge) {
+                badge.textContent = unread;
+                badge.style.display = unread > 0 ? 'flex' : 'none';
+            }
+        }
+
+        function showNotifications() {
+            const unread = notifications.filter(n => !n.read).length;
+            if (unread === 0 && notifications.length === 0) {
+                showToast('No new notifications');
+                return;
+            }
+            // Mark all as read when opened
+            notifications.forEach(n => n.read = true);
+            saveNotifications();
+
+            // Show recent notifications as toasts
+            const recent = notifications.slice(0, 3);
+            recent.forEach((n, i) => {
+                setTimeout(() => showToast(n.message, n.type === 'error' ? 'error' : 'success'), i * 1500);
+            });
+        }
+
         // ==================== APP DATA ====================
         let data = {
             currency: 'IQD',
@@ -1656,6 +1729,7 @@
         function init() {
             updateDate();
             renderAll();
+            loadNotifications();
             setInterval(updateDate, 60000);
             if (localStorage.getItem('myWalletTheme') === 'light') {
                 document.body.classList.add('light-mode');
@@ -1704,6 +1778,11 @@
                 document.getElementById('budgetList').scrollIntoView({ behavior: 'smooth' });
             }
 
+            // Render page-specific content when navigating
+            if (page === 'transactions') renderTransactions();
+            if (page === 'debts') renderDebts();
+            if (page === 'analytics') renderAnalytics();
+
             currentPage = page;
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
@@ -1729,6 +1808,9 @@
             document.getElementById('debtChange').className = pendingDebts > 0 ? 'stat-change negative' : 'stat-change positive';
 
             renderBudgets();
+            renderTransactions();
+            renderDebts();
+            renderAnalytics();
         }
 
         function renderBudgets() {
@@ -1761,6 +1843,7 @@
 
         function renderTransactions() {
             const container = document.getElementById('transactionList');
+            if (!container) return;
             container.innerHTML = '';
             if (data.transactions.length === 0) {
                 container.innerHTML = `<div class="empty-state"><i class="fas fa-receipt"></i><p>No transactions yet. Tap + to add one!</p></div>`;
@@ -1784,6 +1867,7 @@
 
         function renderDebts() {
             const container = document.getElementById('debtList');
+            if (!container) return;
             container.innerHTML = '';
             if (data.debts.length === 0) {
                 container.innerHTML = `<div class="empty-state"><i class="fas fa-hand-holding-dollar"></i><p>No debts yet. Tap + to add one!</p></div>`;
@@ -1811,19 +1895,31 @@
 
         function renderAnalytics() {
             const chart = document.getElementById('spendingChart');
+            if (!chart) return;
             chart.innerHTML = '';
+
+            // Calculate real spending data from transactions
             const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-            const values = [45, 72, 38, 91, 56, 84, 62];
-            const max = Math.max(...values);
+            const daySpending = [0, 0, 0, 0, 0, 0, 0];
+
+            data.transactions.filter(t => t.type === 'expense').forEach(t => {
+                const day = new Date(t.date).getDay();
+                const dayIndex = day === 0 ? 6 : day - 1; // Convert to Mon-Sun
+                daySpending[dayIndex] += t.amount;
+            });
+
+            const max = Math.max(...daySpending, 1);
             days.forEach((day, i) => {
-                const height = (values[i] / max) * 100;
+                const height = (daySpending[i] / max) * 100;
                 const bar = document.createElement('div');
                 bar.className = 'chart-bar';
-                bar.style.height = height + '%';
-                bar.innerHTML = `<div class="chart-bar-value">${values[i]}K</div><div class="chart-bar-label">${day}</div>`;
+                bar.style.height = Math.max(height, 5) + '%';
+                bar.innerHTML = `<div class="chart-bar-value">${formatNumber(daySpending[i])}</div><div class="chart-bar-label">${day}</div>`;
                 chart.appendChild(bar);
             });
+
             const breakdown = document.getElementById('categoryBreakdown');
+            if (!breakdown) return;
             const cats = Object.entries(data.budgets);
             breakdown.innerHTML = cats.map(([key, b]) => {
                 const pct = Math.round((b.spent / (b.limit || 1)) * 100);
@@ -1879,7 +1975,26 @@
             if (type === 'expense' && data.budgets[category]) data.budgets[category].spent += amount;
             saveUserData();
             renderAll();
+            renderTransactions();
             closeModal('transactionModal');
+
+            // Send notification
+            const notifTitle = type === 'income' ? 'Money Added!' : 'Transaction Added';
+            const notifMsg = type === 'income' 
+                ? `+${formatNumber(amount)} ${data.currency} added to your balance`
+                : `-${formatNumber(amount)} ${data.currency} spent on ${category}`;
+            addNotification(notifTitle, notifMsg, type === 'income' ? 'success' : 'info');
+
+            // Check if budget exceeded
+            if (type === 'expense' && data.budgets[category]) {
+                const budget = data.budgets[category];
+                if (budget.spent > budget.limit) {
+                    addNotification('Budget Alert!', `You've exceeded your ${category} budget!`, 'error');
+                } else if (budget.spent > budget.limit * 0.8) {
+                    addNotification('Budget Warning', `You've used 80% of your ${category} budget`, 'warning');
+                }
+            }
+
             showToast('Transaction added!');
             document.getElementById('transAmount').value = '';
             document.getElementById('transDesc').value = '';
@@ -1892,6 +2007,7 @@
             saveUserData();
             renderAll();
             closeModal('salaryModal');
+            addNotification('Salary Added!', `Monthly salary set to ${formatNumber(amount)} ${data.currency}`, 'success');
             showToast('Salary saved!');
             document.getElementById('salaryInput').value = '';
         }
@@ -1904,17 +2020,27 @@
             data.debts.push({ person, amount, type });
             saveUserData();
             renderAll();
+            renderDebts();
             closeModal('debtModal');
+
+            const notifTitle = type === 'owe' ? 'Debt Added' : 'Money Owed to You';
+            const notifMsg = type === 'owe'
+                ? `You owe ${formatNumber(amount)} ${data.currency} to ${person}`
+                : `${person} owes you ${formatNumber(amount)} ${data.currency}`;
+            addNotification(notifTitle, notifMsg, 'info');
+
             showToast('Debt added!');
             document.getElementById('debtPerson').value = '';
             document.getElementById('debtAmount').value = '';
         }
 
         function payDebt(index) {
+            const debt = data.debts[index];
             data.debts.splice(index, 1);
             saveUserData();
             renderDebts();
             renderAll();
+            addNotification('Debt Paid!', `Debt with ${debt.person} marked as paid`, 'success');
             showToast('Debt marked paid!');
         }
 
@@ -1934,6 +2060,7 @@
             saveUserData();
             renderAll();
             closeModal('budgetModal');
+            addNotification('Budget Updated', `${category} budget set to ${formatNumber(limit)} ${data.currency}`, 'success');
             showToast('Budget updated!');
         }
 
@@ -1945,6 +2072,7 @@
             closeModal('currencyModal');
             const names = { IQD: 'Iraqi Dinar', USD: 'US Dollar', EUR: 'Euro', GBP: 'British Pound', TRY: 'Turkish Lira' };
             document.getElementById('currentCurrency').textContent = currency + ' (' + names[currency] + ')';
+            addNotification('Currency Changed', `Currency set to ${names[currency]}`, 'success');
             showToast('Currency updated!');
         }
 
@@ -1973,6 +2101,7 @@
             saveUserData();
             renderAll();
             closeModal('resetModal');
+            addNotification('Data Reset', 'All your data has been reset', 'error');
             showToast('All data reset!');
         }
 
@@ -1984,6 +2113,7 @@
             a.download = 'mywallet-data.json';
             a.click();
             URL.revokeObjectURL(url);
+            addNotification('Data Exported', 'Your data has been exported successfully', 'success');
             showToast('Data exported!');
         }
 
@@ -2109,6 +2239,10 @@ ${message}`
         window.openBudgetModal = openBudgetModal;
         window.loadLocalData = loadLocalData;
         window.saveLocalData = saveLocalData;
+        window.loadNotifications = loadNotifications;
+        window.addNotification = addNotification;
+        window.updateNotifBadge = updateNotifBadge;
+        window.showNotifications = showNotifications;
 initAuth();
     </script>
 </body>

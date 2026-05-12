@@ -166,6 +166,7 @@
             font-size: 13px;
         }
 
+            @keyframes fadeInUp { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
     </style>
 </head>
 <body>
@@ -250,19 +251,50 @@
             const message = document.getElementById('contactMessage').value.trim();
 
             if (!name || !email || !message) {
-                alert('Please fill all fields');
+                showNotification('Please fill all fields', 'error');
                 return;
             }
 
-            const mailtoLink = `mailto:maroduhoki6@gmail.com?subject=MyWallet ${subject.charAt(0).toUpperCase() + subject.slice(1)} - ${encodeURIComponent(name)}&body=${encodeURIComponent(
-                `Name: ${name}
+            if (!email.includes('@')) {
+                showNotification('Please enter a valid email', 'error');
+                return;
+            }
+
+            const btn = document.querySelector('.btn-primary');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+            btn.disabled = true;
+
+            setTimeout(() => {
+                const mailtoLink = `mailto:maroduhoki6@gmail.com?subject=MyWallet ${subject.charAt(0).toUpperCase() + subject.slice(1)} - ${encodeURIComponent(name)}&body=${encodeURIComponent(
+                    `Name: ${name}
 Email: ${email}
 Subject: ${subject}
 
 Message:
 ${message}`
-            )}`;
-            window.location.href = mailtoLink;
+                )}`;
+                window.location.href = mailtoLink;
+
+                btn.innerHTML = '<i class="fas fa-check"></i> Message Sent!';
+                btn.style.background = 'var(--success)';
+
+                setTimeout(() => {
+                    btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Message';
+                    btn.style.background = '';
+                    btn.disabled = false;
+                    document.getElementById('contactName').value = '';
+                    document.getElementById('contactEmail').value = '';
+                    document.getElementById('contactMessage').value = '';
+                }, 2000);
+            }, 1000);
+        }
+
+        function showNotification(msg, type) {
+            const div = document.createElement('div');
+            div.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:' + (type === 'error' ? '#ef4444' : '#10b981') + ';color:white;padding:12px 24px;border-radius:12px;z-index:1000;font-weight:600;animation:fadeInUp 0.3s ease;';
+            div.textContent = msg;
+            document.body.appendChild(div);
+            setTimeout(() => div.remove(), 3000);
         }
     </script>
 </body>
