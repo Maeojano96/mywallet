@@ -1521,7 +1521,7 @@
             height: 100%;
             background: var(--bg);
             z-index: 500;
-            display: none;
+            display: none !important;
             align-items: center;
             justify-content: center;
             flex-direction: column;
@@ -1529,7 +1529,7 @@
         }
 
         .loading-overlay.active {
-            display: flex;
+            display: flex !important;
         }
 
         .loading-spinner {
@@ -2242,9 +2242,17 @@
             // Show loading immediately to prevent login page flash
             showLoading(true);
 
-            // Small delay to let DOM settle
+            // Safety timeout - never stay stuck in loading
+            const safetyTimeout = setTimeout(() => {
+                console.log("Safety timeout triggered - showing login");
+                showLoading(false);
+                showAuthPage('login');
+            }, 3000);
+
+            // Small delay to let DOM and Firebase settle
             setTimeout(() => {
                 if (!auth) {
+                    clearTimeout(safetyTimeout);
                     // Firebase not available - use local mode
                     const demoUser = localStorage.getItem('myWalletDemoUser');
                     if (demoUser) {
@@ -2257,8 +2265,14 @@
                     return;
                 }
 
-                // Firebase is ready
-                auth.onAuthStateChanged(user => {
+                // Firebase is ready - set up auth listener
+                let authResolved = false;
+
+                const unsubscribe = auth.onAuthStateChanged(user => {
+                    authResolved = true;
+                    clearTimeout(safetyTimeout);
+                    unsubscribe();
+
                     currentUser = user;
                     if (user) {
                         loadUserData(user.uid);
@@ -2269,8 +2283,11 @@
                     }
                 }, error => {
                     console.log("Auth state error:", error);
-                    showLoading(false);
-                    showAuthPage('login');
+                    if (!authResolved) {
+                        clearTimeout(safetyTimeout);
+                        showLoading(false);
+                        showAuthPage('login');
+                    }
                 });
             }, 500);
         }
@@ -3347,7 +3364,16 @@
         }
 
         function showLoading(show) {
-            document.getElementById('loadingOverlay').classList.toggle('active', show);
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay) {
+                if (show) {
+                    overlay.classList.add('active');
+                    overlay.style.display = 'flex';
+                } else {
+                    overlay.classList.remove('active');
+                    overlay.style.display = 'none';
+                }
+            }
         }
 
         let toastTimeout = null;
