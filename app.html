@@ -2203,14 +2203,13 @@
 
     <input type="file" id="importFile" style="display:none" accept=".json" onchange="handleImport(event)">
 
-    <!-- FIREBASE SDK - Modular (v9+) -->
-    <script type="module">
-        // ==================== FIREBASE CONFIG ====================
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
+    <!-- FIREBASE SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
+    <script>
+        // ==================== FIREBASE CONFIG ====================
         const firebaseConfig = {
             apiKey: "AIzaSyCH6Gv6czN3Le-AUKCFp9_sS4KTLkc0xXg",
             authDomain: "mywallet-53d84.firebaseapp.com",
@@ -2222,90 +2221,58 @@
         };
 
         // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const analytics = getAnalytics(app);
-
-        // Make Firebase services available globally for non-module scripts
-        window.firebaseApp = app;
-        window.firebaseAuth = auth;
-        window.firebaseDb = db;
-        window.firebaseAnalytics = analytics;
-        window.GoogleAuthProvider = GoogleAuthProvider;
-        window.signInWithPopup = signInWithPopup;
-        window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
-        window.signInWithEmailAndPassword = signInWithEmailAndPassword;
-        window.updateProfile = updateProfile;
-        window.onAuthStateChanged = onAuthStateChanged;
-        window.signOut = signOut;
-        window.doc = doc;
-        window.setDoc = setDoc;
-        window.getDoc = getDoc;
-        window.serverTimestamp = serverTimestamp;
-
-        console.log("Firebase initialized successfully!");
-    </script>
-
-    <script>
-        // ==================== GLOBALS ====================
-        let app = null;
-        let auth = null;
-        let db = null;
+        let app, auth, db;
         let currentUser = null;
         let userData = null;
 
-        // Wait for Firebase module to initialize
-        function waitForFirebase() {
-            return new Promise((resolve) => {
-                const check = () => {
-                    if (window.firebaseAuth && window.firebaseDb) {
-                        app = window.firebaseApp;
-                        auth = window.firebaseAuth;
-                        db = window.firebaseDb;
-                        resolve();
-                    } else {
-                        setTimeout(check, 100);
-                    }
-                };
-                check();
-            });
+        try {
+            app = firebase.initializeApp(firebaseConfig);
+            auth = firebase.auth();
+            db = firebase.firestore();
+            console.log("Firebase initialized successfully!");
+        } catch(e) {
+            console.log("Firebase init error:", e);
+            app = null;
+            auth = null;
+            db = null;
         }
 
         // ==================== AUTH STATE ====================
-        async function initAuth() {
+        function initAuth() {
             // Show loading immediately to prevent login page flash
             showLoading(true);
 
-            await waitForFirebase();
+            // Small delay to let DOM settle
+            setTimeout(() => {
+                if (!auth) {
+                    // Firebase not available - use local mode
+                    const demoUser = localStorage.getItem('myWalletDemoUser');
+                    if (demoUser) {
+                        currentUser = JSON.parse(demoUser);
+                        showMainApp();
+                    } else {
+                        showLoading(false);
+                        showAuthPage('login');
+                    }
+                    return;
+                }
 
-            if (!auth) {
-                // Local mode - check localStorage for demo user
-                const demoUser = localStorage.getItem('myWalletDemoUser');
-                if (demoUser) {
-                    currentUser = JSON.parse(demoUser);
-                    showMainApp();
-                } else {
+                // Firebase is ready
+                auth.onAuthStateChanged(user => {
+                    currentUser = user;
+                    if (user) {
+                        loadUserData(user.uid);
+                        showMainApp();
+                    } else {
+                        showLoading(false);
+                        showAuthPage('login');
+                    }
+                }, error => {
+                    console.log("Auth state error:", error);
                     showLoading(false);
                     showAuthPage('login');
-                }
-                return;
-            }
-
-            onAuthStateChanged(auth, user => {
-                currentUser = user;
-                if (user) {
-                    loadUserData(user.uid);
-                    showMainApp();
-                } else {
-                    showLoading(false);
-                    showAuthPage('login');
-                }
-            }, error => {
-                console.log("Auth state error:", error);
-                showLoading(false);
-                showAuthPage('login');
-            });
+                });
+            }, 500);
         }
 
         // ==================== AUTH PAGES ====================
@@ -2349,8 +2316,8 @@
                 return;
             }
 
-            const provider = new GoogleAuthProvider();
-            signInWithPopup(auth, provider)
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider)
                 .then(result => {
                     showLoading(false);
                     // Don't show toast - auth state change will handle navigation
@@ -2383,7 +2350,7 @@
                 return;
             }
 
-            signInWithEmailAndPassword(auth, email, password)
+            auth.signInWithEmailAndPassword(email, password)
                 .then(() => {
                     showLoading(false);
                     // Don't show toast here - main app will load
@@ -2448,7 +2415,7 @@
         function logout() {
             if (confirm('Are you sure you want to logout?')) {
                 if (auth) {
-                    signOut(auth).then(() => {
+                    auth.signOut().then(() => {
                         currentUser = null;
                         userData = null;
                         showAuthPage('login');
@@ -2492,7 +2459,7 @@
             }
 
             if (auth && currentUser) {
-                updateProfile(currentUser, { displayName: name })
+                currentUser.updateProfile({ displayName: name })
                     .then(() => {
                         updateProfileUI();
                         closeModal('editProfileModal');
@@ -2532,26 +2499,25 @@
         }
 
         // ==================== USER DATA / FIRESTORE ====================
-        async function loadUserData(uid) {
+        function loadUserData(uid) {
             if (!db) return;
 
-            try {
-                const userDoc = await getDoc(doc(db, 'users', uid));
-                if (userDoc.exists()) {
-                    userData = userDoc.data();
-                    if (userData.transactions) data.transactions = userData.transactions;
-                    if (userData.debts) data.debts = userData.debts;
-                    if (userData.budgets) data.budgets = userData.budgets;
-                    if (userData.salary) data.salary = userData.salary;
-                    if (userData.currency) data.currency = userData.currency;
-                    renderAll();
-                }
-            } catch (err) {
-                console.log('Error loading user data:', err);
-            }
+            db.collection('users').doc(uid).get()
+                .then(doc => {
+                    if (doc.exists) {
+                        userData = doc.data();
+                        if (userData.transactions) data.transactions = userData.transactions;
+                        if (userData.debts) data.debts = userData.debts;
+                        if (userData.budgets) data.budgets = userData.budgets;
+                        if (userData.salary) data.salary = userData.salary;
+                        if (userData.currency) data.currency = userData.currency;
+                        renderAll();
+                    }
+                })
+                .catch(err => console.log('Error loading user data:', err));
         }
 
-        async function saveUserData() {
+        function saveUserData() {
             if (!db || !currentUser) return;
 
             const saveData = {
@@ -2560,14 +2526,11 @@
                 budgets: data.budgets,
                 salary: data.salary,
                 currency: data.currency,
-                updatedAt: serverTimestamp()
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
 
-            try {
-                await setDoc(doc(db, 'users', currentUser.uid), saveData, { merge: true });
-            } catch (err) {
-                console.log('Error saving:', err);
-            }
+            db.collection('users').doc(currentUser.uid).set(saveData, { merge: true })
+                .catch(err => console.log('Error saving:', err));
         }
 
         // ==================== APP DATA ====================
