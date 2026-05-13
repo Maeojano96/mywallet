@@ -1519,7 +1519,7 @@
 
         .toast.show {
             transform: translateX(-50%) translateY(0) !important;
-            display: flex !important;
+            display: flex;
         }
 
         .toast-icon {
@@ -1657,12 +1657,6 @@
     <div class="loading-overlay" id="loadingOverlay" style="display:none;">
         <div class="loading-spinner"></div>
         <div class="loading-text">Loading...</div>
-        <div style="margin-top:30px;text-align:center;">
-            <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">Taking too long?</div>
-            <button onclick="forceShowLogin()" style="padding:10px 20px;background:var(--primary);color:white;border:none;border-radius:10px;font-size:13px;cursor:pointer;">
-                Go to Login
-            </button>
-        </div>
     </div>
 
     <!-- AUTH PAGES -->
@@ -2390,26 +2384,27 @@
         };
 
         // Initialize Firebase
-        let app = null, auth = null, db = null;
+        let app, auth, db;
         let currentUser = null;
         let userData = null;
 
-        // Firebase will be initialized after scripts load (see START section)
+        try {
+            app = firebase.initializeApp(firebaseConfig);
+            auth = firebase.auth();
+            db = firebase.firestore();
+            console.log("Firebase initialized successfully!");
+        } catch(e) {
+            console.log("Firebase init error:", e);
+            app = null;
+            auth = null;
+            db = null;
+        }
 
         // ==================== AUTH STATE ====================
         function initAuth() {
             showLoading(true);
-
-            // Safety timeout: if stuck for 8 seconds, force show login
-            const safetyTimeout = setTimeout(() => {
-                console.log('Safety timeout triggered - forcing login page');
-                showLoading(false);
-                showAuthPage('login');
-            }, 8000);
-
             if (auth) {
                 auth.onAuthStateChanged((user) => {
-                    clearTimeout(safetyTimeout); // Cancel safety timeout
                     if (user) {
                         currentUser = user;
                         loadFromLocalStorage();
@@ -2420,15 +2415,8 @@
                         showLoading(false);
                         showAuthPage('login');
                     }
-                }, (error) => {
-                    // Error callback
-                    clearTimeout(safetyTimeout);
-                    console.error('Auth state error:', error);
-                    showLoading(false);
-                    showAuthPage('login');
                 });
             } else {
-                clearTimeout(safetyTimeout);
                 showLoading(false);
                 currentUser = null;
                 showAuthPage('login');
@@ -2437,23 +2425,15 @@
 
         // ==================== AUTH PAGES ====================
         function showAuthPage(page) {
-            // Hide loading overlay
             showLoading(false);
-
-            // Hide toast completely
             const toast = document.getElementById('toast');
-            if (toast) {
-                toast.classList.remove('show');
-                toast.style.display = 'none';
-            }
+            if (toast) { toast.classList.remove('show'); toast.style.display = 'none'; }
             if (toastTimeout) clearTimeout(toastTimeout);
 
             document.getElementById('loginPage').style.display = page === 'login' ? 'flex' : 'none';
             document.getElementById('registerPage').style.display = page === 'register' ? 'flex' : 'none';
             document.getElementById('authPages').style.display = 'flex';
             document.getElementById('mainApp').style.display = 'none';
-
-            // Update auth page text
             setTimeout(updateAllText, 50);
         }
 
@@ -2465,7 +2445,7 @@
 
             document.getElementById('authPages').style.display = 'none';
             document.getElementById('mainApp').style.display = 'block';
-            loadFromLocalStorage(); // Load correct user's data
+            loadFromLocalStorage();
             updateProfileUI();
             init();
         }
@@ -2879,13 +2859,11 @@
             return translations[currentLang][key] || translations.en[key] || key;
         }
 
-        // Get user-specific localStorage key (prevents data leaking between accounts)
-        function getUserKey(baseKey) {
-            const uid = currentUser ? currentUser.uid : 'guest';
-            return baseKey + '_' + uid;
+        function getUserKey(base) {
+            return base + '_' + (currentUser ? currentUser.uid : 'guest');
         }
-        function getUserDataKey() { return getUserKey('myWalletData'); }
-        function getUserNotifKey() { return getUserKey('myWalletNotifications'); }
+        function getDataKey() { return getUserKey('myWalletData'); }
+        function getNotifKey() { return getUserKey('myWalletNotifications'); }
 
 
 
@@ -3091,11 +3069,11 @@
 
         // ==================== LOCAL STORAGE ====================
         function saveToLocalStorage() {
-            localStorage.setItem(getUserDataKey(), JSON.stringify(data));
+            localStorage.setItem(getDataKey(), JSON.stringify(data));
         }
 
         function loadFromLocalStorage() {
-            const saved = localStorage.getItem(getUserDataKey());
+            const saved = localStorage.getItem(getDataKey());
             if (saved) {
                 try {
                     const parsed = JSON.parse(saved);
@@ -3111,7 +3089,6 @@
                     console.log('Error loading local data:', e);
                 }
             } else {
-                // No data for this user - start fresh (prevents seeing other user's data)
                 data = {
                     currency: 'IQD', salary: 0, transactions: [], debts: [],
                     budgets: {
@@ -3745,8 +3722,8 @@
                     other: { limit: 15000, spent: 0, icon: 'ellipsis', color: '#64748b' }
                 }
             };
-            localStorage.removeItem(getUserDataKey());
-            localStorage.removeItem(getUserNotifKey());
+            localStorage.removeItem(getDataKey());
+            localStorage.removeItem(getNotifKey());
             saveUserData();
             renderAll();
             closeModal('resetModal');
@@ -3848,7 +3825,7 @@
         }
 
         function syncNotificationBadge() {
-            const notifications = JSON.parse(localStorage.getItem(getUserNotifKey()) || '[]');
+            const notifications = JSON.parse(localStorage.getItem(getNotifKey()) || '[]');
             const badge = document.getElementById('notifBadge');
             if (badge) {
                 const count = notifications.length;
@@ -3859,7 +3836,7 @@
 
         function renderNotifications() {
             const list = document.getElementById('notificationList');
-            const notifications = JSON.parse(localStorage.getItem(getUserNotifKey()) || '[]');
+            const notifications = JSON.parse(localStorage.getItem(getNotifKey()) || '[]');
 
             if (notifications.length === 0) {
                 list.innerHTML = `
@@ -3918,7 +3895,7 @@
         }
 
         function addNotification(title, message, type = 'info', icon = 'bell') {
-            const notifications = JSON.parse(localStorage.getItem(getUserNotifKey()) || '[]');
+            const notifications = JSON.parse(localStorage.getItem(getNotifKey()) || '[]');
             notifications.unshift({
                 title, message, type, icon,
                 date: Date.now(),
@@ -3926,21 +3903,21 @@
             });
             // Keep only last 50
             if (notifications.length > 50) notifications.pop();
-            localStorage.setItem(getUserNotifKey(), JSON.stringify(notifications));
+            localStorage.setItem(getNotifKey(), JSON.stringify(notifications));
 
             // Update badge
             syncNotificationBadge();
         }
 
         function deleteNotification(index) {
-            const notifications = JSON.parse(localStorage.getItem(getUserNotifKey()) || '[]');
+            const notifications = JSON.parse(localStorage.getItem(getNotifKey()) || '[]');
             notifications.splice(index, 1);
-            localStorage.setItem(getUserNotifKey(), JSON.stringify(notifications));
+            localStorage.setItem(getNotifKey(), JSON.stringify(notifications));
             renderNotifications();
         }
 
         function clearAllNotifications() {
-            localStorage.removeItem(getUserNotifKey());
+            localStorage.removeItem(getNotifKey());
             renderNotifications();
             showToast('All notifications cleared');
         }
@@ -3963,46 +3940,10 @@
             if (e.key === 'Enter') signUpWithEmail();
         });
 
-        function forceShowLogin() {
-            showLoading(false);
-            showAuthPage('login');
-        }
-
         // ==================== START ====================
-        // Wait for Firebase to load before initializing
-        function waitForFirebase(callback, maxAttempts = 50) {
-            let attempts = 0;
-            const interval = setInterval(() => {
-                attempts++;
-                if (typeof firebase !== 'undefined' && firebase.apps) {
-                    clearInterval(interval);
-                    callback();
-                } else if (attempts >= maxAttempts) {
-                    clearInterval(interval);
-                    console.log('Firebase failed to load, showing login');
-                    showLoading(false);
-                    showAuthPage('login');
-                }
-            }, 100);
-        }
-
+        // Initialize app immediately - no loading wait
         window.appInitialized = false;
-        waitForFirebase(() => {
-            // Re-initialize Firebase now that it's loaded
-            try {
-                if (!firebase.apps.length) {
-                    app = firebase.initializeApp(firebaseConfig);
-                } else {
-                    app = firebase.apps[0];
-                }
-                auth = firebase.auth();
-                db = firebase.firestore();
-                console.log("Firebase ready!");
-            } catch(e) {
-                console.log("Firebase re-init error:", e);
-            }
-            initAuth();
-        });
+        initAuth();
     </script>
 </body>
 </html>
